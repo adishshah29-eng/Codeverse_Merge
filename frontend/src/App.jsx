@@ -64,6 +64,9 @@ export default function App() {
       setTeam(userData);
       loadStages();
       setActiveView("dashboard");
+      api.getMe().then((profile) => {
+        if (profile.authenticated && profile.role === "team") setTeam(profile.team);
+      }).catch(console.error);
     } else {
       setActiveView("admin");
     }
@@ -121,6 +124,7 @@ export default function App() {
       <Navbar
         team={team}
         role={role}
+        stages={stages}
         activeView={activeView}
         setActiveView={setActiveView}
         onOpenMarket={() => setIsMarketOpen(true)}

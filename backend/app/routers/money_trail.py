@@ -3,12 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..auth import current_team
+from ..auth import current_team, require_stage
 from ..db import get_db
 from ..games.money_trail.engine import execute_sql, verify_money_trail
 from ..models import AuditEvent, GameOutput, StageProgress, Submission, Team
 
-router = APIRouter(prefix="/api/money_trail", tags=["money_trail"])
+router = APIRouter(
+    prefix="/api/money_trail",
+    tags=["money_trail"],
+    dependencies=[Depends(require_stage(1))],
+)
 
 
 @router.get("/schema")

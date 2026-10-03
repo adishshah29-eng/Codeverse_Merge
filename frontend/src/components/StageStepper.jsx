@@ -61,6 +61,7 @@ export default function StageStepper({
           const isSkipped = stage.status === "skipped";
           const isCurrent = stage.id === currentStage;
           const isLocked = stage.status === "locked";
+          const canEnter = isCurrent && !isCompleted && !isSkipped;
 
           let borderColor = "var(--border-subtle)";
           let statusBadge = <span className="badge badge-cyan">OPEN</span>;
@@ -86,14 +87,14 @@ export default function StageStepper({
           return (
             <div
               key={stage.id}
-              onClick={() => !isLocked && onSelectStage(`stage${stage.id}`)}
+              onClick={() => canEnter && onSelectStage(`stage${stage.id}`)}
               style={{
                 background: isCurrent ? "rgba(239, 68, 68, 0.08)" : "var(--bg-surface)",
                 border: `1px solid ${borderColor}`,
                 borderRadius: "var(--radius-md)",
                 padding: "16px",
-                cursor: isLocked ? "not-allowed" : "pointer",
-                opacity: isLocked ? 0.5 : 1,
+                cursor: canEnter ? "pointer" : "not-allowed",
+                opacity: canEnter ? 1 : 0.62,
                 transition: "all 0.2s ease",
                 position: "relative",
               }}

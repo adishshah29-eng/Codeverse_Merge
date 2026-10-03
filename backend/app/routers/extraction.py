@@ -1,10 +1,11 @@
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..auth import current_team
+from ..auth import current_team, require_stage
 from ..db import get_db
 from ..games.extraction.engine import (
     calculate_final_heist_score,
@@ -13,7 +14,12 @@ from ..games.extraction.engine import (
 )
 from ..models import AuditEvent, GameOutput, Penalty, StageProgress, Submission, Team
 
-router = APIRouter(prefix="/api/extraction", tags=["extraction"])
+router = APIRouter(
+    prefix="/api/extraction",
+    tags=["extraction"],
+    dependencies=[Depends(require_stage(4))],
+)
+EXTRACTION_DURATION_SECONDS = 300
 
 
 @router.get("/status")
@@ -69,20 +75,41 @@ def verify_extraction_artifacts(
     db.add(AuditEvent(
         team_id=team.id,
         event_type="extraction_artifacts_checked",
-        payload=f'{{"all_valid": {result["all_valid"]}}}',
+        payload=json.dumps({"all_valid": result["all_valid"]}),
     ))
     db.commit()
+
+    time_remaining = None
+    if result["all_valid"]:
+        verified_at = datetime.now(timezone.utc)
+        prior_checks = (
+            db.query(AuditEvent)
+            .filter(
+                AuditEvent.team_id == team.id,
+                AuditEvent.event_type == "extraction_artifacts_checked",
+            )
+            .order_by(AuditEvent.id.asc())
+            .all()
+        )
+        for event in prior_checks:
+            if json.loads(event.payload or "{}").get("all_valid"):
+                verified_at = event.created_at
+                break
+        if verified_at.tzinfo is None:
+            verified_at = verified_at.replace(tzinfo=timezone.utc)
+        elapsed = max(0, int((datetime.now(timezone.utc) - verified_at).total_seconds()))
+        time_remaining = max(0, EXTRACTION_DURATION_SECONDS - elapsed)
 
     return {
         "success": result["all_valid"],
         "fields": result["fields"],
         "message": result["message"],
+        "time_remaining_seconds": time_remaining,
     }
 
 
 class SubmitSequenceRequest(BaseModel):
     sequence: List[str]
-    remaining_seconds: int = 240
 
 
 @router.post("/submit-sequence")
@@ -91,6 +118,30 @@ def submit_extraction_sequence(
     team: Team = Depends(current_team),
     db: Session = Depends(get_db),
 ):
+    checks = (
+        db.query(AuditEvent)
+        .filter(
+            AuditEvent.team_id == team.id,
+            AuditEvent.event_type == "extraction_artifacts_checked",
+        )
+        .order_by(AuditEvent.id.asc())
+        .all()
+    )
+    verified_at = next(
+        (
+            event.created_at
+            for event in checks
+            if json.loads(event.payload or "{}").get("all_valid")
+        ),
+        None,
+    )
+    if not verified_at:
+        raise HTTPException(status_code=403, detail="Verify all extraction artifacts first")
+    if verified_at.tzinfo is None:
+        verified_at = verified_at.replace(tzinfo=timezone.utc)
+    elapsed = max(0, int((datetime.now(timezone.utc) - verified_at).total_seconds()))
+    remaining_seconds = max(0, EXTRACTION_DURATION_SECONDS - elapsed)
+
     ok, message = verify_sequence_order(req.sequence)
     if not ok:
         # Deduct penalty for wrong sequence attempt
@@ -130,14 +181,19 @@ def submit_extraction_sequence(
         total_penalties=total_penalties,
         remaining_money=team.money,
         accumulated_risk=team.risk,
-        remaining_time_seconds=req.remaining_seconds,
+        remaining_time_seconds=remaining_seconds,
     )
     team.final_score = final_score
 
     db.add(AuditEvent(
         team_id=team.id,
         event_type="heist_extracted",
-        payload=f'{{"final_score": {final_score}, "stage_scores": {stage_scores_sum}, "penalties": {total_penalties}}}',
+        payload=json.dumps({
+            "final_score": final_score,
+            "stage_scores": stage_scores_sum,
+            "penalties": total_penalties,
+            "remaining_seconds": remaining_seconds,
+        }),
     ))
 
     db.commit()
@@ -151,6 +207,6 @@ def submit_extraction_sequence(
             "total_penalties": total_penalties,
             "remaining_money": team.money,
             "accumulated_risk": team.risk,
-            "remaining_seconds": req.remaining_seconds,
+            "remaining_seconds": remaining_seconds,
         },
     }

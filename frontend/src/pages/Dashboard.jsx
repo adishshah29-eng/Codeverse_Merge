@@ -25,8 +25,8 @@ export default function Dashboard({
       key: "shutdown_code",
       name: "Shutdown Code",
       stage: "Vault Mainframe",
-      val: "SILENT-031", // Phase 1 default
-      ready: true,
+      val: currentStage >= 4 ? "SILENT-031" : "LOCKED UNTIL STAGE 04",
+      ready: currentStage >= 4,
     },
     {
       key: "control_token",
@@ -206,7 +206,7 @@ export default function Dashboard({
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {stages.map((stage) => {
-              const isLocked = stage.status === "locked";
+              const isLocked = stage.id !== currentStage || ["completed", "skipped"].includes(stage.status);
               return (
                 <div
                   key={stage.id}

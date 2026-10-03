@@ -6,13 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..auth import current_team
+from ..auth import current_team, require_stage
 from ..db import get_db
 from ..games.police.route_code import compute_route_code
 from ..games.police.solver import load_graph, path_totals, validate_path
 from ..models import AuditEvent, GameOutput, PoliceClock, StageProgress, Submission, Team, TeamCompromise
 
-router = APIRouter(prefix="/api/police", tags=["police"])
+router = APIRouter(
+    prefix="/api/police",
+    tags=["police"],
+    dependencies=[Depends(require_stage(3))],
+)
 
 _graph_cache = None
 

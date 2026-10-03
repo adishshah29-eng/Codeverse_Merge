@@ -23,8 +23,13 @@ def get_hints_for_team(
     used_records = db.query(HintUse).filter(HintUse.team_id == team.id).all()
     used_hint_ids = {u.hint_id: u for u in used_records}
 
-    # 2. Hints in catalog for the team's current stage (or all previous stages)
-    all_hints = db.query(HintCatalog).order_by(HintCatalog.stage, HintCatalog.sort_order).all()
+    # Hints from locked and completed stages are not exposed through the team API.
+    all_hints = (
+        db.query(HintCatalog)
+        .filter(HintCatalog.stage == team.current_stage)
+        .order_by(HintCatalog.sort_order)
+        .all()
+    )
 
     result = []
     for h in all_hints:
@@ -62,6 +67,8 @@ def request_hint(
     hint = db.query(HintCatalog).filter(HintCatalog.id == req.hint_id).one_or_none()
     if not hint:
         raise HTTPException(status_code=404, detail="Hint not found in catalog")
+    if hint.stage != team.current_stage:
+        raise HTTPException(status_code=403, detail="This hint is not available for the active stage")
 
     if not hint.enabled:
         raise HTTPException(status_code=403, detail="This hint has not been released by the organizer yet")

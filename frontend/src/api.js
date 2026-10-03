@@ -38,7 +38,7 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Auth
-  login: (code, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ code, password }) }),
+  login: (email, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   adminLogin: (username, password) => request("/auth/admin-login", { method: "POST", body: JSON.stringify({ username, password }) }),
   getMe: () => request("/auth/me"),
   logout: () => {
@@ -74,7 +74,7 @@ export const api = {
   // Stage 4: Extraction
   getExtractionStatus: () => request("/extraction/status"),
   verifyExtractionArtifacts: (artifacts) => request("/extraction/verify-artifacts", { method: "POST", body: JSON.stringify(artifacts) }),
-  submitExtractionSequence: (sequence, remaining_seconds) => request("/extraction/submit-sequence", { method: "POST", body: JSON.stringify({ sequence, remaining_seconds }) }),
+  submitExtractionSequence: (sequence) => request("/extraction/submit-sequence", { method: "POST", body: JSON.stringify({ sequence }) }),
 
   // Black Market
   getMarketCatalog: () => request("/market/catalog"),

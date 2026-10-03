@@ -17,7 +17,7 @@ class Team(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120))
-    password_hash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     supabase_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     money: Mapped[int] = mapped_column(Integer, default=10000)
     risk: Mapped[float] = mapped_column(Float, default=0)

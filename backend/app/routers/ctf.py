@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..auth import current_team
+from ..auth import current_team, require_stage
 from ..db import get_db
 from ..games.control.engine import (
     CONTROL_SERVER_TOKEN,
@@ -15,7 +15,11 @@ from ..games.control.engine import (
 )
 from ..models import AuditEvent, CtfState, GameOutput, StageProgress, Submission, Team
 
-router = APIRouter(prefix="/api/ctf", tags=["ctf"])
+router = APIRouter(
+    prefix="/api/ctf",
+    tags=["ctf"],
+    dependencies=[Depends(require_stage(2))],
+)
 
 
 def get_or_create_ctf_state(team_id: int, db: Session) -> CtfState:

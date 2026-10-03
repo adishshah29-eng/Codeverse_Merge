@@ -23,6 +23,12 @@ export default function Stage4Extraction({ team, onStageCompleted }) {
     }
   };
 
+  const submitSequence = async (sequence) => {
+    const result = await api.submitExtractionSequence(sequence);
+    if (result.success) await onStageCompleted(4, result.final_score);
+    return result;
+  };
+
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 20px" }}>
       {/* Header telemetry info */}
@@ -60,25 +66,25 @@ export default function Stage4Extraction({ team, onStageCompleted }) {
           <div style={{ fontSize: "0.8rem", fontFamily: "var(--font-mono)" }}>
             <span style={{ color: "var(--text-dim)" }}>01/DEL: </span>
             <strong style={{ color: teamOutputs.deletion_key ? "var(--emerald)" : "var(--crimson)" }}>
-              {teamOutputs.deletion_key || "ERASE-7429"}
+              {teamOutputs.deletion_key || "NOT ACQUIRED"}
             </strong>
           </div>
           <div style={{ fontSize: "0.8rem", fontFamily: "var(--font-mono)" }}>
             <span style={{ color: "var(--text-dim)" }}>02/SHT: </span>
             <strong style={{ color: "var(--emerald)" }}>
-              {teamOutputs.shutdown_code || "SILENT-031"}
+              {teamOutputs.shutdown_code || "NOT ACQUIRED"}
             </strong>
           </div>
           <div style={{ fontSize: "0.8rem", fontFamily: "var(--font-mono)" }}>
             <span style={{ color: "var(--text-dim)" }}>03/CTL: </span>
             <strong style={{ color: teamOutputs.control_token ? "var(--emerald)" : "var(--crimson)" }}>
-              {teamOutputs.control_token || "MINT-OMEGA"}
+              {teamOutputs.control_token || "NOT ACQUIRED"}
             </strong>
           </div>
           <div style={{ fontSize: "0.8rem", fontFamily: "var(--font-mono)" }}>
             <span style={{ color: "var(--text-dim)" }}>04/ROT: </span>
             <strong style={{ color: teamOutputs.route_code ? "var(--emerald)" : "var(--crimson)" }}>
-              {teamOutputs.route_code || "NORTH-07"}
+              {teamOutputs.route_code || "NOT ACQUIRED"}
             </strong>
           </div>
         </div>
@@ -92,7 +98,12 @@ export default function Stage4Extraction({ team, onStageCompleted }) {
         background: "#111014",
         minHeight: 700
       }}>
-        <App Vault={Vault} />
+        <App
+          Vault={Vault}
+          onVerifyArtifacts={(artifacts) => api.verifyExtractionArtifacts(artifacts)}
+          onCompleteSequence={submitSequence}
+          onHint={() => api.requestHint("hint_s4_01")}
+        />
       </div>
     </div>
   );

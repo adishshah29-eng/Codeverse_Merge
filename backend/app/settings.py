@@ -21,9 +21,7 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "admin"
 
-    seed_team_password: str = "heist"
-    seed_team_count: int = 10
-    initial_money: int = 10000
+    cookie_secure: bool = False
 
     ctf_base_path: str = "/ctf"
     hard_mode_header: bool = True

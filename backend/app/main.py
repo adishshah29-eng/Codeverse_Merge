@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .auth import hash_password
 from .db import Base, engine, SessionLocal
 from .games.money_trail.engine import init_money_trail_db
 from .models import ConfigKV, HintCatalog, PoliceClock, StageProgress, Team
@@ -18,44 +17,7 @@ def seed_database():
 
     db = SessionLocal()
     try:
-        # 1. Seed teams (TEAM01 to TEAM10)
-        team_count = db.query(Team).count()
-        if team_count == 0:
-            default_teams = [
-                ("TEAM01", "La Resistencia (Alpha)", 12000),
-                ("TEAM02", "Los Bandidos (Bravo)", 10000),
-                ("TEAM03", "Tokyo Syndicate", 10000),
-                ("TEAM04", "Berlin Vanguard", 10000),
-                ("TEAM05", "Nairobi Infiltrators", 10000),
-                ("TEAM06", "Rio Cyber Operatives", 10000),
-                ("TEAM07", "Denver Demolition Crew", 10000),
-                ("TEAM08", "Helsinki Heavy Unit", 10000),
-                ("TEAM09", "Bogota Tactical Cell", 10000),
-                ("TEAM10", "Palermo Masterminds", 10000),
-            ]
-            for code, name, money in default_teams:
-                team = Team(
-                    code=code,
-                    name=name,
-                    password_hash=hash_password(settings.seed_team_password),
-                    money=money,
-                    risk=0.0,
-                    current_stage=1,
-                    black_market_unlocked=False,
-                    black_market_purchases=0,
-                )
-                db.add(team)
-            db.commit()
-
-            # Initialize stage progress rows for all seeded teams
-            all_teams = db.query(Team).all()
-            for t in all_teams:
-                for s in range(1, 5):
-                    status = "open" if s == 1 else "locked"
-                    db.add(StageProgress(team_id=t.id, stage=s, status=status, score=0.0))
-            db.commit()
-
-        # 2. Seed police clock
+        # 1. Seed police clock
         clock = db.query(PoliceClock).filter(PoliceClock.id == 1).one_or_none()
         if not clock:
             db.add(PoliceClock(id=1, t=10.0, running=True, compromised_json="[]"))
