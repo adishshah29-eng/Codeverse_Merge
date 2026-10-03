@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,
     code VARCHAR(32) UNIQUE NOT NULL,
     name VARCHAR(120) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    supabase_user_id VARCHAR(64),
+    password_hash VARCHAR(255),
+    supabase_user_id VARCHAR(64) UNIQUE,
     money INTEGER DEFAULT 10000,
     risk DOUBLE PRECISION DEFAULT 0.0,
     current_stage INTEGER DEFAULT 1,
@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS teams (
     event_started_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Upgrade existing installations from local team-password authentication.
+ALTER TABLE teams ALTER COLUMN password_hash DROP NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_teams_supabase_user_id
+    ON teams(supabase_user_id) WHERE supabase_user_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS stage_progress (
     id SERIAL PRIMARY KEY,
