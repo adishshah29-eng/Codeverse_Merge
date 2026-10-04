@@ -1,0 +1,99 @@
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+function getHeaders(teamId = null, adminToken = null) {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  const activeTeamId = teamId || localStorage.getItem("mint_team_id");
+  if (activeTeamId) {
+    headers["X-Team-ID"] = activeTeamId;
+  }
+  const activeAdminToken = adminToken || localStorage.getItem("mint_admin_token");
+  if (activeAdminToken) {
+    headers["X-Admin-Token"] = activeAdminToken;
+  }
+  return headers;
+}
+
+export async function apiRequest(endpoint, method = "GET", body = null, customHeaders = {}) {
+  const options = {
+    method,
+    headers: { ...getHeaders(), ...customHeaders },
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || data.message || `API Error: ${response.statusText}`);
+  }
+  return data;
+}
+
+// ── Auth API ──
+export const authApi = {
+  register: (name, passcode) => apiRequest("/auth/register", "POST", { name, passcode }),
+  login: (name, passcode) => apiRequest("/auth/login", "POST", { name, passcode }),
+  adminLogin: (passcode) => apiRequest("/auth/admin-login", "POST", { passcode }),
+};
+
+// ── Progression API ──
+export const progressApi = {
+  getDashboard: () => apiRequest("/progress/dashboard"),
+  skipStage: (stageId) => apiRequest("/progress/skip", "POST", { stage_id: stageId }),
+  unlockHint: (stageId, hintIndex) => apiRequest("/progress/hint", "POST", { stage_id: stageId, hint_index: hintIndex }),
+};
+
+// ── Game 1 API (Vault Breach) ──
+export const game1Api = {
+  getChallenge: () => apiRequest("/games/1/challenge"),
+  submit: (payload) => apiRequest("/games/1/submit", "POST", payload),
+};
+
+// ── Game 2 API (Alarm System) ──
+export const game2Api = {
+  getChallenges: () => apiRequest("/games/2/challenges"),
+  runCode: (code) => apiRequest("/games/2/run", "POST", { code }),
+  submit: (payload) => apiRequest("/games/2/submit", "POST", payload),
+};
+
+// ── Game 3 API (Hidden Blueprint) ──
+export const game3Api = {
+  ping: () => apiRequest("/games/3/ping"),
+  manifest: () => apiRequest("/games/3/manifest"),
+  press: () => apiRequest("/games/3/press"),
+  queryBlueprint: (fragment) => apiRequest(`/games/3/blueprint?fragment=${encodeURIComponent(fragment)}`),
+  submit: (payload) => apiRequest("/games/3/submit", "POST", payload),
+};
+
+// ── Game 4 API (Mint Map) ──
+export const game4Api = {
+  getDataset: () => apiRequest("/games/4/dataset"),
+  evaluateRoute: (route) => apiRequest("/games/4/evaluate", "POST", { route }),
+  submit: (payload) => apiRequest("/games/4/submit", "POST", payload),
+};
+
+// ── Game 5 API (Printing Press ML) ──
+export const game5Api = {
+  getInfo: () => apiRequest("/games/5/info"),
+  runModel: (code) => apiRequest("/games/5/run", "POST", { code }),
+  submit: (payload) => apiRequest("/games/5/submit", "POST", payload),
+};
+
+// ── Leaderboard API ──
+export const leaderboardApi = {
+  getLeaderboard: () => apiRequest("/leaderboard"),
+};
+
+// ── Admin API ──
+export const adminApi = {
+  getTeams: () => apiRequest("/admin/teams"),
+  addTeam: (name, passcode) => apiRequest("/admin/teams", "POST", { name, passcode }),
+  updateTeam: (teamId, data) => apiRequest(`/admin/teams/${teamId}`, "PATCH", data),
+  deleteTeam: (teamId) => apiRequest(`/admin/teams/${teamId}`, "DELETE"),
+  getConfig: () => apiRequest("/admin/config"),
+  updateConfig: (config) => apiRequest("/admin/config", "PUT", config),
+  getAuditLogs: () => apiRequest("/admin/audit-logs"),
+};
