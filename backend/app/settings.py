@@ -2,7 +2,6 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
-BACKEND_ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / "vendor"
 
 
@@ -11,7 +10,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Heist Game"
     secret_key: str = ""
-    database_url: str = f"sqlite:///{BACKEND_ROOT / 'heist.db'}"
+    database_url: str = ""
 
     supabase_url: str = ""
     supabase_anon_key: str = ""

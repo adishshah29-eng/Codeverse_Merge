@@ -137,6 +137,56 @@ CREATE TABLE IF NOT EXISTS event_clock (
     ends_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Stage 1 forensic challenge data, stored in the same Supabase database.
+CREATE TABLE IF NOT EXISTS transactions (
+    txn_id VARCHAR(64) PRIMARY KEY,
+    timestamp VARCHAR(32) NOT NULL,
+    sender_account VARCHAR(128) NOT NULL,
+    recipient_account VARCHAR(128) NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
+    currency VARCHAR(8) NOT NULL,
+    terminal_id VARCHAR(64),
+    status VARCHAR(32) NOT NULL,
+    memo TEXT
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+    emp_id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    role VARCHAR(120) NOT NULL,
+    department VARCHAR(120) NOT NULL,
+    clearance_level INTEGER NOT NULL,
+    active_badge_id VARCHAR(64) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS access_cards (
+    event_id SERIAL PRIMARY KEY,
+    badge_id VARCHAR(64) NOT NULL,
+    emp_id VARCHAR(64) NOT NULL,
+    door_location VARCHAR(160) NOT NULL,
+    timestamp VARCHAR(32) NOT NULL,
+    access_granted BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS terminal_logs (
+    log_id SERIAL PRIMARY KEY,
+    terminal_id VARCHAR(64) NOT NULL,
+    emp_id VARCHAR(64) NOT NULL,
+    login_time VARCHAR(32) NOT NULL,
+    logout_time VARCHAR(32),
+    command_history TEXT,
+    ip_address VARCHAR(48) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS security_events (
+    event_id SERIAL PRIMARY KEY,
+    timestamp VARCHAR(32) NOT NULL,
+    event_type VARCHAR(64) NOT NULL,
+    location VARCHAR(160) NOT NULL,
+    severity VARCHAR(24) NOT NULL,
+    notes TEXT
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_stage_progress_team ON stage_progress(team_id);
 CREATE INDEX IF NOT EXISTS idx_audit_events_team ON audit_events(team_id);

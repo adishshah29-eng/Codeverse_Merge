@@ -19,7 +19,7 @@ A unified, full-stack cybersecurity and optimization competition platform integr
                         └──────┬───────────────────────────────┬───────┘
                                │                               │
                 ┌──────────────┴──────────────┐  ┌─────────────┴─────────────┐
-                │     SUPABASE / SQLITE       │  │       GAME ENGINES        │
+                │  SINGLE SUPABASE POSTGRES  │  │       GAME ENGINES        │
                 │ Teams, Progress, Ledgers,   │  │ 1. Forensics / SQL        │
                 │ Game Outputs, Audit Events  │  │ 2. CTF Sectors (SQLi/DOM) │
                 └─────────────────────────────┘  │ 3. Police Routing (DP)    │
@@ -98,11 +98,11 @@ Open **`http://localhost:5173`** in your browser.
 
 Team access uses Supabase Auth. Organizers can create and delete team accounts in the admin dashboard.
 
-The ignored `backend/heist.db` file is the local SQLite game database. `supabase/schema.sql` is not another database; it creates the game tables in PostgreSQL. The app can use Supabase Auth with a local SQLite game DB, or use Supabase PostgreSQL for both Auth and game data.
+Supabase PostgreSQL is the only game database. Team state, scores, configuration, audit events, and the Stage 1 forensic tables all use the same database. SQLite is not supported.
 
-1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase project URL, anon key, and service-role key. The service-role key is required for team account management; keep it private and only in the backend environment. Set `DATABASE_URL` to the PostgreSQL connection string if using Supabase PostgreSQL, then apply `supabase/schema.sql` in that database. To keep local SQLite, omit `DATABASE_URL` or set it to the default SQLite path.
+1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase project URL, anon key, service-role key, and PostgreSQL `DATABASE_URL`. The service-role key is required for team account management; keep it private and only in the backend environment. Apply `supabase/schema.sql` to the database in `DATABASE_URL` before starting the backend.
 2. Sign into the organizer portal and use **TEAM ACCOUNTS** to enter a team code, name, login email, and password. Give the team its login email and password.
-3. Team records are created in the selected game database and linked to their Supabase Auth user automatically.
+3. Team records are created in the Supabase database and linked to their Supabase Auth user automatically.
 
 Set `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, and `STAGE4_SEQUENCE` in the private backend `.env` before first startup. The game seeds these values into `ConfigKV`; organizers can change them later in the admin configuration panel. Never place event answers in frontend code or public documentation.
 

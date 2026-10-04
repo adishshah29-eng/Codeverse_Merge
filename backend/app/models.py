@@ -169,5 +169,64 @@ class EventClock(Base):
     ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class ForensicTransaction(Base):
+    __tablename__ = "transactions"
+
+    txn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    timestamp: Mapped[str] = mapped_column(String(32))
+    sender_account: Mapped[str] = mapped_column(String(128))
+    recipient_account: Mapped[str] = mapped_column(String(128))
+    amount: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String(8))
+    terminal_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(32))
+    memo: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ForensicEmployee(Base):
+    __tablename__ = "employees"
+
+    emp_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    role: Mapped[str] = mapped_column(String(120))
+    department: Mapped[str] = mapped_column(String(120))
+    clearance_level: Mapped[int] = mapped_column(Integer)
+    active_badge_id: Mapped[str] = mapped_column(String(64))
+
+
+class ForensicAccessCard(Base):
+    __tablename__ = "access_cards"
+
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    badge_id: Mapped[str] = mapped_column(String(64))
+    emp_id: Mapped[str] = mapped_column(String(64))
+    door_location: Mapped[str] = mapped_column(String(160))
+    timestamp: Mapped[str] = mapped_column(String(32))
+    access_granted: Mapped[bool] = mapped_column(Boolean)
+
+
+class ForensicTerminalLog(Base):
+    __tablename__ = "terminal_logs"
+
+    log_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    terminal_id: Mapped[str] = mapped_column(String(64))
+    emp_id: Mapped[str] = mapped_column(String(64))
+    login_time: Mapped[str] = mapped_column(String(32))
+    logout_time: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    command_history: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str] = mapped_column(String(48))
+
+
+class ForensicSecurityEvent(Base):
+    __tablename__ = "security_events"
+
+    event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[str] = mapped_column(String(32))
+    event_type: Mapped[str] = mapped_column(String(64))
+    location: Mapped[str] = mapped_column(String(160))
+    severity: Mapped[str] = mapped_column(String(24))
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 def dumps(obj) -> str:
     return json.dumps(obj, default=str)

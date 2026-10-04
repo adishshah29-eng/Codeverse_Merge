@@ -38,8 +38,6 @@ wheels/
 *.db
 *.sqlite
 *.sqlite3
-heist.db
-money_trail.db
 .local-data/
 
 # Environment Variables & Secrets

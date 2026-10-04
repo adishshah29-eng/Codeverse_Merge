@@ -8,12 +8,13 @@ class Base(DeclarativeBase):
     pass
 
 
-connect_args = {}
 url = settings.database_url
-if url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+if url.startswith("postgres://"):
+    url = "postgresql://" + url.removeprefix("postgres://")
+if not url.startswith(("postgresql://", "postgresql+psycopg2://")):
+    raise RuntimeError("DATABASE_URL must be a Supabase PostgreSQL connection string")
 
-engine = create_engine(url, connect_args=connect_args, pool_pre_ping=True)
+engine = create_engine(url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

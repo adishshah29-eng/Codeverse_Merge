@@ -136,7 +136,8 @@ def seed_database():
             for row in db.query(ConfigKV).all()
             if any(part in row.key.lower() for part in ("key", "code", "token", "secret"))
         ]
-        init_money_trail_db(secret_values)
+        init_money_trail_db(db, secret_values)
+        db.commit()
 
         clock = db.query(PoliceClock).filter(PoliceClock.id == 1).one_or_none()
         if not clock:
