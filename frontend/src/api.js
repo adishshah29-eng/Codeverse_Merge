@@ -83,6 +83,8 @@ export const api = {
 
   // Admin
   getAdminDashboard: () => request("/admin/dashboard"),
+  createAdminTeam: (team) => request("/admin/teams", { method: "POST", body: JSON.stringify(team) }),
+  deleteAdminTeam: (teamId) => request(`/admin/teams/${teamId}`, { method: "DELETE" }),
   listAdminHints: () => request("/admin/hints"),
   toggleAdminHint: (hint_id, enabled) => request("/admin/hints/toggle", { method: "POST", body: JSON.stringify({ hint_id, enabled }) }),
   applyAdminPenalty: (team_id, amount, reason) => request("/admin/penalties/apply", { method: "POST", body: JSON.stringify({ team_id, amount, reason }) }),

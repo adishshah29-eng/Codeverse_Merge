@@ -7,6 +7,9 @@ export default function AdminDashboard() {
   const [auditEvents, setAuditEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(true);
+  const [teamForm, setTeamForm] = useState({ code: "", name: "", email: "", password: "" });
+  const [teamFeedback, setTeamFeedback] = useState("");
+  const [teamSaving, setTeamSaving] = useState(false);
 
   // Penalty form
   const [selectedTeamId, setSelectedTeamId] = useState(1);
@@ -76,6 +79,34 @@ export default function AdminDashboard() {
       await loadAll();
     } catch (err) {
       setCompromiseFeedback(`Error: ${err.message}`);
+    }
+  };
+
+  const handleCreateTeam = async (e) => {
+    e.preventDefault();
+    setTeamFeedback("");
+    setTeamSaving(true);
+    try {
+      const res = await api.createAdminTeam(teamForm);
+      setTeamFeedback(res.message);
+      setTeamForm({ code: "", name: "", email: "", password: "" });
+      await loadAll();
+    } catch (err) {
+      setTeamFeedback(`Error: ${err.message}`);
+    } finally {
+      setTeamSaving(false);
+    }
+  };
+
+  const handleDeleteTeam = async (team) => {
+    if (!window.confirm(`Delete ${team.code} (${team.name}) and its game progress?`)) return;
+    setTeamFeedback("");
+    try {
+      const res = await api.deleteAdminTeam(team.id);
+      setTeamFeedback(res.message);
+      await loadAll();
+    } catch (err) {
+      setTeamFeedback(`Error: ${err.message}`);
     }
   };
 
@@ -160,6 +191,50 @@ export default function AdminDashboard() {
           <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--emerald)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
             {teams.filter((t) => t.final_score !== null).length} / {teams.length}
           </div>
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: 24, marginBottom: 28 }}>
+        <h3 style={{ fontSize: "1.1rem", fontFamily: "var(--font-display)", color: "#fff", marginBottom: 14 }}>
+          TEAM ACCOUNTS
+        </h3>
+        <form onSubmit={handleCreateTeam} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, alignItems: "end" }}>
+          <label style={{ color: "var(--text-dim)", fontSize: "0.75rem" }}>
+            TEAM CODE
+            <input className="input-cyber" style={{ marginTop: 5 }} value={teamForm.code} onChange={(e) => setTeamForm({ ...teamForm, code: e.target.value })} maxLength={32} required />
+          </label>
+          <label style={{ color: "var(--text-dim)", fontSize: "0.75rem" }}>
+            TEAM NAME
+            <input className="input-cyber" style={{ marginTop: 5 }} value={teamForm.name} onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })} maxLength={120} required />
+          </label>
+          <label style={{ color: "var(--text-dim)", fontSize: "0.75rem" }}>
+            LOGIN EMAIL
+            <input className="input-cyber" style={{ marginTop: 5 }} type="email" value={teamForm.email} onChange={(e) => setTeamForm({ ...teamForm, email: e.target.value })} required />
+          </label>
+          <label style={{ color: "var(--text-dim)", fontSize: "0.75rem" }}>
+            PASSWORD
+            <input className="input-cyber" style={{ marginTop: 5 }} type="password" value={teamForm.password} onChange={(e) => setTeamForm({ ...teamForm, password: e.target.value })} minLength={8} autoComplete="new-password" required />
+          </label>
+          <button type="submit" className="btn btn-emerald" disabled={teamSaving}>
+            {teamSaving ? "CREATING..." : "ADD TEAM"}
+          </button>
+        </form>
+        {teamFeedback && <p role="status" style={{ marginTop: 12, color: teamFeedback.startsWith("Error:") ? "#f87171" : "#34d399", fontSize: "0.8rem" }}>{teamFeedback}</p>}
+        <div style={{ overflowX: "auto", marginTop: 18 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+            <thead><tr style={{ color: "var(--text-dim)", textAlign: "left" }}><th style={{ padding: 8 }}>CODE</th><th style={{ padding: 8 }}>TEAM</th><th style={{ padding: 8 }}>ACCOUNT</th><th style={{ padding: 8 }}></th></tr></thead>
+            <tbody>
+              {teams.map((team) => (
+                <tr key={team.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                  <td style={{ padding: 8, color: "var(--gold)", fontFamily: "var(--font-mono)" }}>{team.code}</td>
+                  <td style={{ padding: 8, color: "#fff" }}>{team.name}</td>
+                  <td style={{ padding: 8, color: "var(--text-muted)" }}>{team.has_login ? "Supabase Auth" : "No linked account"}</td>
+                  <td style={{ padding: 8, textAlign: "right" }}><button type="button" className="btn btn-ghost" style={{ color: "#f87171", fontSize: "0.75rem" }} onClick={() => handleDeleteTeam(team)}>DELETE</button></td>
+                </tr>
+              ))}
+              {teams.length === 0 && <tr><td colSpan={4} style={{ padding: 12, color: "var(--text-dim)" }}>No teams yet.</td></tr>}
+            </tbody>
+          </table>
         </div>
       </div>
 

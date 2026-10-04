@@ -2,14 +2,17 @@ import json
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+import httpx
 
 from ..auth import current_admin
 from ..db import get_db
 from ..models import (
     AuditEvent,
+    CtfState,
     ConfigKV,
+    GameOutput,
     HintCatalog,
     HintUse,
     MarketPurchase,
@@ -20,8 +23,142 @@ from ..models import (
     Team,
     TeamCompromise,
 )
+from ..settings import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+def _parse_audit_payload(payload: str | None):
+    if not payload:
+        return {}
+    if not payload.startswith("{"):
+        return payload
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError:
+        return payload
+
+
+class CreateTeamRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=8, max_length=128)
+
+
+def _supabase_admin_request(method: str, path: str, **kwargs):
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Supabase team management is not configured. Set SUPABASE_SERVICE_ROLE_KEY.",
+        )
+
+    try:
+        response = httpx.request(
+            method,
+            f"{settings.supabase_url.rstrip('/')}/auth/v1{path}",
+            headers={
+                "apikey": settings.supabase_service_role_key,
+                "Authorization": f"Bearer {settings.supabase_service_role_key}",
+            },
+            timeout=10.0,
+            **kwargs,
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=503, detail="Supabase Auth is unavailable") from exc
+
+    if not response.is_success:
+        try:
+            body = response.json()
+            message = body.get("msg") or body.get("message") or body.get("error_description")
+        except ValueError:
+            message = None
+        raise HTTPException(
+            status_code=409 if response.status_code == 409 else 400,
+            detail=message or "Supabase Auth rejected the team account request",
+        )
+    return response
+
+
+@router.post("/teams")
+def create_team(
+    req: CreateTeamRequest,
+    admin: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    code = req.code.strip().upper()
+    name = req.name.strip()
+    email = req.email.strip().lower()
+    if not code or not name or "@" not in email or any(char.isspace() for char in email):
+        raise HTTPException(status_code=422, detail="Enter a team code, name, and valid email")
+
+    if db.query(Team).filter(Team.code.ilike(code)).one_or_none():
+        raise HTTPException(status_code=409, detail="A team with this code already exists")
+
+    auth_response = _supabase_admin_request(
+        "POST",
+        "/admin/users",
+        json={"email": email, "password": req.password, "email_confirm": True},
+    )
+    user_id = auth_response.json().get("id")
+    if not user_id:
+        raise HTTPException(status_code=502, detail="Supabase did not return a user ID")
+
+    team = Team(code=code, name=name, password_hash="", supabase_user_id=user_id)
+    db.add(team)
+    try:
+        db.flush()
+        db.add(AuditEvent(
+            team_id=team.id,
+            event_type="admin_team_created",
+            payload=json.dumps({"code": code, "name": name, "email": email}),
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        try:
+            _supabase_admin_request("DELETE", f"/admin/users/{user_id}")
+        except HTTPException:
+            pass
+        raise
+
+    return {"success": True, "message": f"Team {code} created.", "team": {"id": team.id, "code": code, "name": name, "email": email}}
+
+
+@router.delete("/teams/{team_id}")
+def delete_team(
+    team_id: int,
+    admin: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    team = db.query(Team).filter(Team.id == team_id).one_or_none()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_details = {"code": team.code, "name": team.name}
+    linked_user_id = team.supabase_user_id
+    db.query(AuditEvent).filter(AuditEvent.team_id == team.id).update(
+        {AuditEvent.team_id: None}, synchronize_session=False
+    )
+    for model in (GameOutput, StageProgress, Submission, HintUse, Penalty, MarketPurchase, CtfState, TeamCompromise):
+        db.query(model).filter(model.team_id == team.id).delete(synchronize_session=False)
+    db.delete(team)
+    db.add(AuditEvent(
+        team_id=None,
+        event_type="admin_team_deleted",
+        payload=json.dumps(team_details),
+    ))
+
+    try:
+        db.flush()
+        if linked_user_id:
+            _supabase_admin_request("DELETE", f"/admin/users/{linked_user_id}")
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {"success": True, "message": f"Team {team_details['code']} deleted."}
 
 
 @router.get("/dashboard")
@@ -86,6 +223,7 @@ def get_admin_dashboard(
             "id": t.id,
             "code": t.code,
             "name": t.name,
+            "has_login": bool(t.supabase_user_id),
             "current_stage": t.current_stage,
             "completed_stages": completed_stages,
             "skipped_stages": skipped_stages,
@@ -169,7 +307,7 @@ def toggle_hint(
     db.add(AuditEvent(
         team_id=None,
         event_type="admin_hint_toggled",
-        payload=f'{{"hint_id": "{hint.id}", "enabled": {req.enabled}}}',
+        payload=json.dumps({"hint_id": hint.id, "enabled": req.enabled}),
     ))
     db.commit()
 
@@ -202,7 +340,7 @@ def apply_penalty(
     db.add(AuditEvent(
         team_id=team.id,
         event_type="admin_penalty_applied",
-        payload=f'{{"amount": {req.amount}, "reason": "{req.reason}"}}',
+        payload=json.dumps({"amount": req.amount, "reason": req.reason}),
     ))
     db.commit()
 
@@ -246,7 +384,7 @@ def manage_police_compromise(
     db.add(AuditEvent(
         team_id=req.team_id,
         event_type="admin_node_compromised",
-        payload=f'{{"node": "{node}", "action": "{req.action}"}}',
+        payload=json.dumps({"node": node, "action": req.action}),
     ))
     db.commit()
 
@@ -267,7 +405,7 @@ def get_audit_log(
                 "id": e.id,
                 "team_id": e.team_id,
                 "event_type": e.event_type,
-                "payload": json.loads(e.payload or "{}") if e.payload.startswith("{") else e.payload,
+                "payload": _parse_audit_payload(e.payload),
                 "created_at": e.created_at.isoformat(),
             }
             for e in events
