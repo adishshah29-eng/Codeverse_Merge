@@ -35,22 +35,22 @@ A unified, full-stack cybersecurity and optimization competition platform integr
 ### Stage 1: Erase the Money Trail
 * **Category:** Data Forensics & SQL / Pandas
 * **Challenge:** Query transactions, employee badges, terminal sessions, and security events to trace an unauthorized server room breach and corrupt wire transfer.
-* **Output:** `Deletion Key` (`ERASE-7429`).
+* **Output:** Team-specific Deletion Key.
 * **Scoring:** Max 10.0 PTS.
 
 ### Stage 2: Find the Control Server
 * **Category:** Web & API Forensics (IronVault CTF)
 * **Challenge:** 3 Security Sectors:
-  1. *Teller Login:* SQL injection tautology (`' OR '1'='1`) bypassing character filters.
+  1. *Teller Login:* SQL injection tautology bypassing character filters.
   2. *Institutional Transfers:* DOM overlay bypass (`div.fraud-shield`).
   3. *Vault Balance Audit:* HTTP response header extraction (`X-Audit-Code`).
-* **Output:** `Control Token` (`MINT-OMEGA`).
+* **Output:** Control Token stored for server-side extraction verification.
 * **Scoring:** Max 10.0 PTS.
 
 ### Stage 3: Outrun the Police
 * **Category:** Graph Algorithms & Multi-Objective Optimization
 * **Challenge:** 60-checkpoint city escape graph with closing availability windows and compromised nodes. Must satisfy time deadline (≤ 120 min) and resource budget (≤ 100 credits) while minimizing risk.
-* **Output:** `Escape Route Code` (checksum, e.g. `EDA1-2D02` or `NORTH-07`).
+* **Output:** Escape Route Code stored for server-side extraction verification.
 * **Scoring:** Max 10.0 PTS.
 
 ### Stage 4: Final Extraction
@@ -103,5 +103,7 @@ The ignored `backend/heist.db` file is the local SQLite game database. `supabase
 1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase project URL, anon key, and service-role key. The service-role key is required for team account management; keep it private and only in the backend environment. Set `DATABASE_URL` to the PostgreSQL connection string if using Supabase PostgreSQL, then apply `supabase/schema.sql` in that database. To keep local SQLite, omit `DATABASE_URL` or set it to the default SQLite path.
 2. Sign into the organizer portal and use **TEAM ACCOUNTS** to enter a team code, name, login email, and password. Give the team its login email and password.
 3. Team records are created in the selected game database and linked to their Supabase Auth user automatically.
+
+Set `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, and `STAGE4_SEQUENCE` in the private backend `.env` before first startup. The game seeds these values into `ConfigKV`; organizers can change them later in the admin configuration panel. Never place event answers in frontend code or public documentation.
 
 The API resolves the team from the verified Supabase user ID; it ignores team identity supplied by the browser. Deleting a team removes its Supabase Auth account and game progress while retaining detached audit events. Set `COOKIE_SECURE=true` when serving over HTTPS. Organizer credentials remain configured with `ADMIN_USERNAME` and `ADMIN_PASSWORD`. Restart the backend after creating or changing `.env`.

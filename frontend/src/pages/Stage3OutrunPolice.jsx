@@ -277,7 +277,7 @@ export default function Stage3OutrunPolice({ team, onStageCompleted }) {
                   marginTop: 8,
                   fontFamily: "var(--font-mono)"
                 }}>
-                  AUTHORITATIVE ROUTE CODE: {result.route_code}
+                  ROUTE VERIFIED AND STORED FOR EXTRACTION
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { api, getToken } from "./api";
+import { api } from "./api";
 import Navbar from "./components/Navbar";
 import HintDrawer from "./components/HintDrawer";
 import BlackMarketModal from "./components/BlackMarketModal";

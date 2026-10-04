@@ -9,7 +9,12 @@ from ..models import AuditEvent, ConfigKV, GameOutput, Penalty, StageProgress, T
 
 router = APIRouter(prefix="/api/stages", tags=["stages"])
 
-DEFAULT_SKIP_PENALTY = 3.0
+STAGE_SCORE_KEYS = {
+    1: "stage1_max_score",
+    2: "stage2_max_score",
+    3: "police_max_score",
+    4: "stage4_max_score",
+}
 
 STAGE_METADATA = [
     {
@@ -18,7 +23,6 @@ STAGE_METADATA = [
         "title": "Stage 1 — Erase the Money Trail",
         "category": "Data Forensics & SQL",
         "description": "Cross-reference transaction registries, employee card swipes, terminal session histories, and security logs to eliminate decoys and forge the master Deletion Key.",
-        "max_score": 10.0,
         "output_key": "deletion_key",
         "output_name": "Deletion Key",
     },
@@ -28,7 +32,6 @@ STAGE_METADATA = [
         "title": "Stage 2 — Find the Control Server",
         "category": "Web & API Forensics",
         "description": "Infiltrate IronVault internal teller portals, bypass client-side fraud shields, and inspect raw HTTP telemetry headers to capture the command Control Token.",
-        "max_score": 10.0,
         "output_key": "control_token",
         "output_name": "Control Token",
     },
@@ -38,7 +41,6 @@ STAGE_METADATA = [
         "title": "Stage 3 — Outrun the Police",
         "category": "Graph Optimization & Routing",
         "description": "Navigate a dynamic metropolitan escape network across 60 checkpoints under closing road windows, compromised nodes, and competing time/risk budgets.",
-        "max_score": 10.0,
         "output_key": "route_code",
         "output_name": "Escape Route Code",
     },
@@ -48,7 +50,6 @@ STAGE_METADATA = [
         "title": "Stage 4 — Final Extraction",
         "category": "Systems Integration & Execution",
         "description": "Arm the 4 required cryptographic artifacts, execute the 5-step master override sequence, and pilot the getaway crew through the underground transit tunnels.",
-        "max_score": 10.0,
         "output_key": "final_score",
         "output_name": "Extraction Score",
     },
@@ -57,12 +58,23 @@ STAGE_METADATA = [
 
 def get_skip_penalty(db: Session) -> float:
     kv = db.query(ConfigKV).filter(ConfigKV.key == "stage_skip_penalty").one_or_none()
-    if kv:
-        try:
-            return float(kv.value)
-        except ValueError:
-            pass
-    return DEFAULT_SKIP_PENALTY
+    if not kv:
+        raise HTTPException(status_code=503, detail="Stage configuration is unavailable")
+    try:
+        return float(kv.value)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="Stage configuration is invalid") from exc
+
+
+def get_stage_max_score(db: Session, stage_id: int) -> float:
+    key = STAGE_SCORE_KEYS[stage_id]
+    kv = db.query(ConfigKV).filter(ConfigKV.key == key).one_or_none()
+    if not kv:
+        raise HTTPException(status_code=503, detail="Stage score configuration is unavailable")
+    try:
+        return float(kv.value)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="Stage score configuration is invalid") from exc
 
 
 @router.get("")
@@ -73,9 +85,9 @@ def get_stages(
     progress_rows = db.query(StageProgress).filter(StageProgress.team_id == team.id).all()
     progress_by_stage = {p.stage: p for p in progress_rows}
 
-    # Query outputs
+    # Query outputs — only used to determine acquired/not-acquired (NOT to return values)
     outputs = db.query(GameOutput).filter(GameOutput.team_id == team.id).all()
-    output_dict = {o.key: o.value for o in outputs}
+    acquired_keys = {o.key for o in outputs}
 
     result = []
     for meta in STAGE_METADATA:
@@ -86,9 +98,11 @@ def get_stages(
 
         result.append({
             **meta,
+            "max_score": get_stage_max_score(db, s_id),
             "status": status,
             "score": score,
-            "output_value": output_dict.get(meta["output_key"]),
+            # SECURITY: boolean flag only, NOT the actual key value
+            "output_acquired": meta["output_key"] in acquired_keys,
             "is_current": (s_id == team.current_stage),
         })
 
@@ -147,9 +161,9 @@ def skip_stage(
 
     # 3. Supply synthetic fallback output so downstream stages remain unlockable
     fallback_outputs = {
-        1: ("deletion_key", "ERASE-7429-SKIPPED"),
-        2: ("control_token", "MINT-OMEGA-SKIPPED"),
-        3: ("route_code", "NORTH-07-SKIPPED"),
+        1: ("deletion_key", "STAGE-01-SKIPPED"),
+        2: ("control_token", "STAGE-02-SKIPPED"),
+        3: ("route_code", "STAGE-03-SKIPPED"),
     }
     if stage_id in fallback_outputs:
         k, v = fallback_outputs[stage_id]

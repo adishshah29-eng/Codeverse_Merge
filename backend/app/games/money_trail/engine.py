@@ -3,21 +3,21 @@ Erase the Money Trail - SQL / Pandas Forensics Challenge Engine
 Challenge: Correlate transactions, employee badges, terminal sessions, and security events
 to identify the illicit heist transfer and compute the authoritative Deletion Key.
 """
-import hashlib
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 DB_PATH = Path(__file__).parent / "money_trail.db"
 
-CORRECT_DELETION_KEY = "ERASE-7429"
-ROGUE_TRANSACTION_ID = "TXN-884920"
-ROGUE_EMPLOYEE_ID = "EMP-4091"
-ROGUE_BADGE_ID = "BADGE-991"
-ROGUE_TERMINAL = "TERM-SEC-09"
+# NOTE: The actual correct values are stored in ConfigKV, NOT here.
+# These are only used as fallback seeds if ConfigKV is not yet populated.
+_DEFAULT_ROGUE_TXN = "TXN-884920"
+_DEFAULT_ROGUE_EMPLOYEE = "EMP-4091"
+_DEFAULT_ROGUE_BADGE = "BADGE-991"
+_DEFAULT_ROGUE_TERMINAL = "TERM-SEC-09"
 
 
-def init_money_trail_db() -> None:
+def init_money_trail_db(secret_values: list[str] | None = None) -> None:
     """Initialize and populate the SQLite forensics database with realistic records and decoys."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -90,7 +90,19 @@ def init_money_trail_db() -> None:
     cursor.execute("SELECT COUNT(*) FROM transactions")
     if cursor.fetchone()[0] == 0:
         _seed_forensic_data(cursor)
-        conn.commit()
+
+    for secret in secret_values or []:
+        if secret:
+            cursor.execute(
+                "UPDATE transactions SET memo = REPLACE(memo, ?, '[REDACTED]') WHERE instr(memo, ?) > 0",
+                (secret, secret),
+            )
+            cursor.execute(
+                "UPDATE terminal_logs SET command_history = REPLACE(command_history, ?, '[REDACTED]') WHERE instr(command_history, ?) > 0",
+                (secret, secret),
+            )
+
+    conn.commit()
 
     conn.close()
 
@@ -111,7 +123,7 @@ def _seed_forensic_data(cursor: sqlite3.Cursor) -> None:
         ("TXN-100201", "2026-10-03 01:14:22", "ACC-SPAIN-01", "ACC-COMM-99", 15200.0, "EUR", "TERM-TL-01", "CLEARED", "Routine Merchant Settlement"),
         ("TXN-100202", "2026-10-03 01:45:10", "ACC-TREAS-04", "ACC-CENTRAL-01", 1250000.0, "EUR", "TERM-OPS-03", "CLEARED", "Reserve Rebalancing"),
         ("TXN-449102", "2026-10-03 02:11:05", "ACC-OFFSHORE-09", "ACC-CAYMAN-77", 980000.0, "USD", "TERM-INTL-02", "FLAGGED", "DECOY: Audit compliance flag raised"),
-        ("TXN-884920", "2026-10-03 02:49:18", "VAULT-MAIN-RESERVE", "GHOST-ESCAPEE-CH90", 48500000.0, "EUR", "TERM-SEC-09", "UNAUTHORIZED", "TARGET: Core Heist wire siphon. Authorization token ERASE-7429 required for ledger deletion."),
+        ("TXN-884920", "2026-10-03 02:49:18", "VAULT-MAIN-RESERVE", "GHOST-ESCAPEE-CH90", 48500000.0, "EUR", "TERM-SEC-09", "UNAUTHORIZED", "TARGET: Core Heist wire siphon. Ledger purge record — forensic cross-reference required."),
         ("TXN-902188", "2026-10-03 03:02:44", "ACC-PAYROLL-01", "ACC-EMP-DIST", 345000.0, "EUR", "TERM-FIN-01", "CLEARED", "Scheduled Friday Payroll Batch"),
         ("TXN-950114", "2026-10-03 03:22:19", "ACC-MAINT-02", "ACC-HVAC-VEND", 8450.0, "EUR", "TERM-FAC-01", "CLEARED", "Facility Maintenance Invoice"),
     ]
@@ -131,7 +143,7 @@ def _seed_forensic_data(cursor: sqlite3.Cursor) -> None:
     terminal_logs = [
         ("TERM-OPS-03", "EMP-1042", "2026-10-03 01:25:00", "2026-10-03 02:00:00", "audit_check; balance_verify --all;", "10.0.14.22"),
         ("TERM-INTL-02", "EMP-3310", "2026-10-03 02:05:00", "2026-10-03 02:20:00", "compliance_scan --threshold=500000; alert_flag TXN-449102;", "10.0.18.5"),
-        ("TERM-SEC-09", "EMP-4091", "2026-10-03 02:45:11", "2026-10-03 03:12:00", "sudo su; psql -d vault_core -c 'UPDATE ledgers SET status=PURGED WHERE txn_id=TXN-884920'; echo 'KEY_DERIVATION: SHA256(TXN-884920:BADGE-991:48500000) -> ERASE-7429';", "10.0.99.14"),
+        ("TERM-SEC-09", "EMP-4091", "2026-10-03 02:45:11", "2026-10-03 03:12:00", "sudo su; psql -d vault_core -c 'UPDATE ledgers SET status=PURGED WHERE txn_id=TXN-884920'; echo 'KEY_DERIVATION: SHA256(TXN-884920:BADGE-991:48500000) -> [REDACTED]';", "10.0.99.14"),
         ("TERM-FIN-01", "EMP-1001", "2026-10-03 03:00:00", "2026-10-03 03:10:00", "payroll_execute --batch=2026-10-03;", "10.0.12.8"),
     ]
     cursor.executemany("INSERT INTO terminal_logs (terminal_id, emp_id, login_time, logout_time, command_history, ip_address) VALUES (?,?,?,?,?,?)", terminal_logs)
@@ -180,15 +192,17 @@ def execute_sql(query: str) -> Tuple[bool, List[str], List[Dict[str, Any]], str]
         return False, [], [], str(e)
 
 
-def verify_money_trail(submission_key: str, suspect_txn: str = "") -> Tuple[bool, str, Dict[str, Any]]:
-    """Validate submitted deletion key and optional transaction ID."""
+def verify_money_trail(
+    submission_key: str,
+    correct_key: str,
+    suspect_txn: str = "",
+) -> Tuple[bool, str, Dict[str, Any]]:
+    """Validate submitted deletion key against the server-authoritative correct key."""
     clean_key = submission_key.strip().upper()
-    if clean_key == CORRECT_DELETION_KEY:
+    expected = (correct_key or "").strip().upper()
+    if clean_key == expected:
+        # Return only non-secret confirmation details — NOT the key itself
         return True, "Forensic correlation verified! Core ledger deletion key unlocked.", {
-            "deletion_key": CORRECT_DELETION_KEY,
-            "rogue_txn": ROGUE_TRANSACTION_ID,
-            "rogue_employee": ROGUE_EMPLOYEE_ID,
-            "rogue_badge": ROGUE_BADGE_ID,
-            "rogue_terminal": ROGUE_TERMINAL,
+            "rogue_txn": _DEFAULT_ROGUE_TXN,
         }
     return False, "Invalid deletion key. Cross-reference the terminal audit logs with the unauthorized server room breach.", {}

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_name: str = "Heist Game"
-    secret_key: str = "change-me-in-production-heist-secret"
+    secret_key: str = ""
     database_url: str = f"sqlite:///{BACKEND_ROOT / 'heist.db'}"
 
     supabase_url: str = ""
@@ -18,15 +18,19 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_jwt_secret: str = ""
 
-    admin_username: str = "admin"
-    admin_password: str = "admin"
+    admin_username: str = ""
+    admin_password: str = ""
+
+    stage1_deletion_key: str = ""
+    ctf_puzzle3_code: str = ""
+    ctf_control_token: str = ""
+    stage4_shutdown_code: str = ""
+    stage4_sequence: str = ""
 
     cookie_secure: bool = False
 
     ctf_base_path: str = "/ctf"
     hard_mode_header: bool = True
-    puzzle2_code: str = "IVB-LEVEL2-5K8"
-
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
 

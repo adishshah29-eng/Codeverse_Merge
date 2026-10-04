@@ -25,7 +25,7 @@ export default function Dashboard({
       key: "shutdown_code",
       name: "Shutdown Code",
       stage: "Vault Mainframe",
-      val: currentStage >= 4 ? "SILENT-031" : "LOCKED UNTIL STAGE 04",
+      val: currentStage >= 4 ? "READY FOR VERIFICATION" : "LOCKED UNTIL STAGE 04",
       ready: currentStage >= 4,
     },
     {

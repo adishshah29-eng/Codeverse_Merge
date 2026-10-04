@@ -46,6 +46,7 @@ money_trail.db
 .env
 .env.local
 .env.*.local
+SOLUTIONS.md
 *.pem
 *.key
 

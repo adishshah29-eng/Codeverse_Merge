@@ -6,7 +6,7 @@ import httpx
 
 from ..auth import COOKIE_NAME, create_token, decode_token, get_supabase_user_id, get_token
 from ..db import get_db
-from ..models import Team, StageProgress
+from ..models import AuditEvent, Team, StageProgress
 from ..settings import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -38,6 +38,12 @@ def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_
         raise HTTPException(status_code=503, detail="Supabase Auth is unavailable") from exc
 
     if auth_response.status_code != 200:
+        db.add(AuditEvent(
+            team_id=None,
+            event_type="team_login_failed",
+            payload=json.dumps({"email": req.email[:254]}),
+        ))
+        db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid team credentials")
 
     auth_data = auth_response.json()
@@ -48,6 +54,12 @@ def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_
 
     team = db.query(Team).filter(Team.supabase_user_id == user_id).one_or_none()
     if not team:
+        db.add(AuditEvent(
+            team_id=None,
+            event_type="team_login_unassigned",
+            payload=json.dumps({"user_id": user_id}),
+        ))
+        db.commit()
         raise HTTPException(status_code=403, detail="No team is assigned to this account")
 
     if not team.event_started_at:
@@ -62,6 +74,8 @@ def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_
         samesite="lax",
         max_age=86400,
     )
+    db.add(AuditEvent(team_id=team.id, event_type="team_login_success", payload="{}"))
+    db.commit()
     return {
         "success": True,
         "role": "team",
@@ -77,8 +91,18 @@ def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_
 
 
 @router.post("/admin-login")
-def admin_login(req: AdminLoginRequest, response: Response):
+def admin_login(req: AdminLoginRequest, response: Response, db: Session = Depends(get_db)):
+    if not settings.admin_username or not settings.admin_password:
+        raise HTTPException(status_code=503, detail="Admin credentials are not configured")
+
     if req.username != settings.admin_username or req.password != settings.admin_password:
+        # Log failed admin login attempt
+        db.add(AuditEvent(
+            team_id=None,
+            event_type="admin_login_failed",
+            payload=json.dumps({"username": req.username[:64]}),
+        ))
+        db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid admin credentials")
 
     token = create_token(sub=req.username, role="admin")
@@ -90,9 +114,18 @@ def admin_login(req: AdminLoginRequest, response: Response):
         samesite="lax",
         max_age=86400,
     )
+
+    # Log successful admin login
+    db.add(AuditEvent(
+        team_id=None,
+        event_type="admin_login_success",
+        payload=f'{{"username": "{req.username}"}}',
+    ))
+    db.commit()
+
     return {
         "success": True,
-        "token": token,
+        # SECURITY: token NOT returned in body — it's in the httpOnly cookie
         "role": "admin",
         "username": req.username,
     }

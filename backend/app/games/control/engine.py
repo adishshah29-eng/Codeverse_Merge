@@ -1,29 +1,23 @@
 """
 Stage 2: Find the Control Server (CTF Engine)
 Preserves the exact 3 security sector puzzles from P2_G2 (IronVault CTF):
-1. Teller Portal Login (SQL Injection) -> IVB-LEVEL1-7Q2
-2. Institutional Transfers (DOM Manipulation) -> IVB-LEVEL2-5K8
-3. Vault Balance Audit (HTTP Response Headers) -> IVB-LEVEL3-3M9
-Final Output: Control Token (MINT-OMEGA)
+1. Teller Portal Login (SQL Injection)
+2. Institutional Transfers (DOM Manipulation)
+3. Vault Balance Audit (HTTP Response Headers)
+Final Output: Control Token
+
+SECURITY: All secret codes are loaded from ConfigKV at request time via the router.
+          This file contains NO hardcoded puzzle answers.
 """
 import re
-import uuid
-from typing import Any, Dict, Tuple
-
-PUZZLE_CODES = {
-    1: "IVB-LEVEL1-7Q2",
-    2: "IVB-LEVEL2-5K8",
-    3: "IVB-LEVEL3-3M9",
-}
-
-CONTROL_SERVER_TOKEN = "MINT-OMEGA"
-DECOY_BODY_CODE = "FAKE-000-DECOY"
+from typing import Tuple
 
 
 def evaluate_teller_login(username: str, password: str) -> Tuple[bool, str, str, bool, str]:
     """
     Evaluates SQL injection attempt on teller login.
     Returns (success, simulated_query, auth_code, was_filtered, message).
+    auth_code is only populated when success=True; caller injects the code from ConfigKV.
     """
     filter_regex = re.compile(r"(--|;|\/\*)")
     was_filtered = bool(filter_regex.search(username) or filter_regex.search(password))
@@ -45,24 +39,27 @@ def evaluate_teller_login(username: str, password: str) -> Tuple[bool, str, str,
     )
 
     if is_tautology:
-        return True, simulated_query, PUZZLE_CODES[1], was_filtered, "SQL Injection Successful! Bypass accepted."
+        return True, simulated_query, "__inject_from_config__", was_filtered, "SQL Injection Successful! Bypass accepted."
 
     return False, simulated_query, "", was_filtered, "Login failed: Invalid credentials. Check debug console."
 
 
-def evaluate_code_submission(puzzle_id: int, code: str) -> Tuple[bool, str, bool]:
+def evaluate_code_submission(puzzle_id: int, code: str, puzzle_codes: dict, decoy_body_code: str) -> Tuple[bool, str, bool]:
     """
     Validates submitted code for a sector.
     Returns (success, message, trap_triggered).
+    puzzle_codes: dict mapping puzzle_id -> correct_code (from ConfigKV, not hardcoded here)
     """
-    if puzzle_id not in PUZZLE_CODES:
+    if puzzle_id not in puzzle_codes:
         return False, "Invalid sector ID", False
 
     clean_code = code.strip().upper()
-    target_code = PUZZLE_CODES[puzzle_id]
+    target_code = puzzle_codes[puzzle_id]
+    if not target_code:
+        return False, "This sector is not configured for code submission.", False
 
     # Check decoy body code for Sector 3
-    if puzzle_id == 3 and clean_code == DECOY_BODY_CODE:
+    if puzzle_id == 3 and clean_code == decoy_body_code:
         return False, "Decoy detected! The audit code is NOT in the JSON response body. Inspect HTTP headers.", True
 
     # Check request ID decoy

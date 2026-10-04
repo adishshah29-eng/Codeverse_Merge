@@ -28,6 +28,10 @@ from ..settings import settings
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+def _is_sensitive_config_key(key: str) -> bool:
+    return any(part in key.lower() for part in ("key", "code", "token", "sequence", "secret"))
+
+
 def _parse_audit_payload(payload: str | None):
     if not payload:
         return {}
@@ -246,7 +250,7 @@ def get_admin_dashboard(
     return {
         "success": True,
         "team_count": len(teams),
-        "police_clock_t": clock.t if clock else 10.0,
+        "police_clock_t": clock.t if clock else None,
         "compromised_nodes": compromised_nodes,
         "teams": team_data,
         "recent_submissions": [
@@ -391,13 +395,104 @@ def manage_police_compromise(
     return {"success": True, "message": f"Node {node} updated ({req.action})."}
 
 
-@router.get("/audit-events")
-def get_audit_log(
-    limit: int = 50,
+@router.get("/config")
+def list_config(
     admin: dict = Depends(current_admin),
     db: Session = Depends(get_db),
 ):
-    events = db.query(AuditEvent).order_by(AuditEvent.id.desc()).limit(limit).all()
+    """List all game configuration values. Admins can view and update these."""
+    rows = db.query(ConfigKV).order_by(ConfigKV.key).all()
+    return {
+        "success": True,
+        "config": [
+            {"key": r.key, "value": "********" if _is_sensitive_config_key(r.key) else r.value}
+            for r in rows
+        ],
+    }
+
+
+class SetConfigRequest(BaseModel):
+    value: str
+
+
+@router.put("/config/{key}")
+def set_config(
+    key: str,
+    req: SetConfigRequest,
+    admin: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    """Set or update a game configuration value."""
+    row = db.query(ConfigKV).filter(ConfigKV.key == key).one_or_none()
+    if row:
+        row.value = req.value
+    else:
+        db.add(ConfigKV(key=key, value=req.value))
+
+    db.add(AuditEvent(
+        team_id=None,
+        event_type="admin_config_changed",
+        payload=json.dumps({"key": key, "by": admin.get("sub"), "secret": _is_sensitive_config_key(key)}),
+    ))
+    db.commit()
+    return {"success": True, "key": key, "value": "********" if _is_sensitive_config_key(key) else req.value}
+
+
+class AdjustTeamRequest(BaseModel):
+    money: int | None = None
+    risk: float | None = None
+    current_stage: int | None = None
+    reason: str = "Admin override"
+
+
+@router.post("/teams/{team_id}/adjust")
+def adjust_team(
+    team_id: int,
+    req: AdjustTeamRequest,
+    admin: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin override for team money, risk, or stage — always audited."""
+    team = db.query(Team).filter(Team.id == team_id).one_or_none()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    changes = {}
+    if req.money is not None:
+        changes["money"] = {"old": team.money, "new": req.money}
+        team.money = req.money
+    if req.risk is not None:
+        changes["risk"] = {"old": team.risk, "new": req.risk}
+        team.risk = req.risk
+    if req.current_stage is not None:
+        if req.current_stage < 1 or req.current_stage > 4:
+            raise HTTPException(status_code=400, detail="Stage must be 1-4")
+        changes["current_stage"] = {"old": team.current_stage, "new": req.current_stage}
+        team.current_stage = req.current_stage
+
+    db.add(AuditEvent(
+        team_id=team_id,
+        event_type="admin_team_adjusted",
+        payload=json.dumps({"changes": changes, "reason": req.reason, "by": admin.get("sub")}),
+    ))
+    db.commit()
+    return {"success": True, "message": f"Team {team.code} adjusted.", "changes": changes}
+
+
+@router.get("/audit-events")
+def get_audit_log(
+    limit: int = 100,
+    team_id: int | None = None,
+    event_type: str | None = None,
+    admin: dict = Depends(current_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(AuditEvent).order_by(AuditEvent.id.desc())
+    if team_id is not None:
+        query = query.filter(AuditEvent.team_id == team_id)
+    if event_type:
+        query = query.filter(AuditEvent.event_type == event_type)
+    events = query.limit(min(limit, 500)).all()
     return {
         "success": True,
         "events": [

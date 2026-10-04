@@ -1,28 +1,15 @@
 const API_BASE = "/api";
 
-export function getToken() {
-  return localStorage.getItem("heist_token") || "";
-}
-
-export function setToken(token) {
-  if (token) {
-    localStorage.setItem("heist_token", token);
-  } else {
-    localStorage.removeItem("heist_token");
-  }
-}
-
 async function request(endpoint, options = {}) {
-  const token = getToken();
   const headers = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
   const config = {
     ...options,
     headers,
+    credentials: "same-origin",
   };
 
   const response = await fetch(`${API_BASE}${endpoint}`, config);
@@ -41,10 +28,7 @@ export const api = {
   login: (email, password) => request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   adminLogin: (username, password) => request("/auth/admin-login", { method: "POST", body: JSON.stringify({ username, password }) }),
   getMe: () => request("/auth/me"),
-  logout: () => {
-    setToken("");
-    return request("/auth/logout", { method: "POST" });
-  },
+  logout: () => request("/auth/logout", { method: "POST" }),
 
   // Stages & Progress
   getStages: () => request("/stages"),

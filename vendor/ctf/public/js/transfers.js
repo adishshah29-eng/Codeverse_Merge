@@ -37,7 +37,7 @@
 
         if (data.success) {
           if (tokenDisplayEl) {
-            tokenDisplayEl.textContent = data.authCode || 'IVB-LEVEL2-5K8';
+            tokenDisplayEl.textContent = 'TRANSFER CLEARED';
           }
           if (transferSuccessModal) {
             transferSuccessModal.classList.add('active');

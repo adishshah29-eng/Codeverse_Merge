@@ -10,7 +10,7 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
   const [controlToken, setControlToken] = useState(null);
 
   // Bank puzzle quick test state
-  const [tellerUser, setTellerUser] = useState("' OR '1'='1");
+  const [tellerUser, setTellerUser] = useState("");
   const [tellerPass, setTellerPass] = useState("");
   const [tellerDebug, setTellerDebug] = useState(null);
 
@@ -24,7 +24,9 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
       const res = await api.getCtfState();
       setCtfState(res.state);
       if (res.state?.isCompleted) {
-        setControlToken("MINT-OMEGA");
+        setControlToken("CAPTURED");
+      } else {
+        setControlToken(null);
       }
     } catch (err) {
       console.error(err);
@@ -49,7 +51,7 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
       await loadState();
 
       if (res.allSolved) {
-        setControlToken(res.control_token || "MINT-OMEGA");
+        setControlToken("CAPTURED");
         if (onStageCompleted) onStageCompleted(2, 10.0);
       }
     } catch (err) {
@@ -64,9 +66,8 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
     try {
       const res = await api.tellerLogin(tellerUser, tellerPass);
       setTellerDebug(res);
-      if (res.authCode) {
-        setInputCodes((prev) => ({ ...prev, 1: res.authCode }));
-      }
+      if (res.success) await loadState();
+      if (res.allSolved && onStageCompleted) onStageCompleted(2, 10.0);
     } catch (err) {
       setTellerDebug({ success: false, message: err.message });
     }
@@ -76,9 +77,8 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
     try {
       const res = await api.transferFunds("1001", "IVB-OFFSHORE-1", transferAmount);
       setTransferDebug(res);
-      if (res.authCode) {
-        setInputCodes((prev) => ({ ...prev, 2: res.authCode }));
-      }
+      if (res.success) await loadState();
+      if (res.allSolved && onStageCompleted) onStageCompleted(2, 10.0);
     } catch (err) {
       setTransferDebug({ success: false, message: err.message });
     }
@@ -138,7 +138,7 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
                 ✓ ALL SECTORS COMPROMISED // CONTROL SERVER CAPTURED
               </div>
               <h2 style={{ fontSize: "1.4rem", fontFamily: "var(--font-display)", color: "#fff" }}>
-                AUTHORITATIVE CONTROL TOKEN: <span style={{ color: "var(--emerald)" }}>{controlToken}</span>
+                CONTROL SERVER STATUS: <span style={{ color: "var(--emerald)" }}>{controlToken}</span>
               </h2>
               <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: 4 }}>
                 Control token registered in team game outputs. Armed for Stage 4 Final Extraction.
@@ -196,7 +196,6 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
               <div style={{ marginTop: 10, fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: tellerDebug.success ? "#34d399" : "#f87171" }}>
                 <div>Query: {tellerDebug.query}</div>
                 <div>{tellerDebug.message}</div>
-                {tellerDebug.authCode && <div style={{ color: "var(--gold)", fontWeight: 700 }}>Code: {tellerDebug.authCode}</div>}
               </div>
             )}
           </div>
@@ -274,7 +273,6 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
             {transferDebug && (
               <div style={{ marginTop: 10, fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "#34d399" }}>
                 <div>{transferDebug.message}</div>
-                <div style={{ color: "var(--gold)", fontWeight: 700 }}>Code: {transferDebug.authCode}</div>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Activity, ArrowRight, LockKeyhole, ShieldCheck, Users } from "lucide-react";
-import { api, setToken } from "../api";
+import { api } from "../api";
 
 export default function Login({ onLoginSuccess }) {
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -19,11 +19,9 @@ export default function Login({ onLoginSuccess }) {
     try {
       if (isAdminMode) {
         const res = await api.adminLogin(adminUser, adminPass);
-        setToken(res.token);
         onLoginSuccess("admin", { username: res.username });
       } else {
         const res = await api.login(email, password);
-        setToken(res.token);
         onLoginSuccess("team", res.team);
       }
     } catch (err) {

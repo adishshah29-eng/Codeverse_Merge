@@ -11,19 +11,12 @@ from .settings import ROOT, settings
 
 
 def seed_database():
-    """Initializes tables and seeds initial teams, hint catalog, and clocks if not already present."""
+    """Initializes tables and seeds initial teams, hint catalog, clocks, and config if not already present."""
     Base.metadata.create_all(bind=engine)
-    init_money_trail_db()
 
     db = SessionLocal()
     try:
-        # 1. Seed police clock
-        clock = db.query(PoliceClock).filter(PoliceClock.id == 1).one_or_none()
-        if not clock:
-            db.add(PoliceClock(id=1, t=10.0, running=True, compromised_json="[]"))
-            db.commit()
-
-        # 3. Seed default Hint Catalog
+        # 1. Seed default Hint Catalog
         if db.query(HintCatalog).count() == 0:
             default_hints = [
                 # Stage 1 Hints
@@ -40,7 +33,7 @@ def seed_database():
                     id="hint_s1_02",
                     stage=1,
                     title="Terminal Command Audit Extraction",
-                    body="Cross-examine terminal TERM-SEC-09 logs. The shell command history contains the exact key derivation signature.",
+                    body="Cross-examine terminal TERM-SEC-09 logs. The shell command history contains the key derivation signature.",
                     penalty=2.0,
                     enabled=True,
                     sort_order=2,
@@ -89,9 +82,66 @@ def seed_database():
                 db.add(h)
             db.commit()
 
-        # 4. Seed config KV defaults
-        if not db.query(ConfigKV).filter(ConfigKV.key == "stage_skip_penalty").one_or_none():
-            db.add(ConfigKV(key="stage_skip_penalty", value="3.0"))
+        # 3. Seed ALL game configuration defaults
+        # These keys drive ALL game logic — never hardcoded in routers.
+        # Admins can change any of these via PUT /api/admin/config/{key}
+        config_defaults = {
+            # Stage skip
+            "stage_skip_penalty": "3.0",
+            # Stage 1 — Money Trail
+            "stage1_max_score": "10.0",
+            # Stage 2 — CTF Control Server
+            "ctf_decoy_body_code": "FAKE-000-DECOY",
+            "ctf_puzzle1_points": "3",
+            "ctf_puzzle2_points": "3",
+            "ctf_puzzle3_points": "4",
+            "stage2_max_score": "10.0",
+            # Stage 3 — Outrun Police
+            "police_budget": "100.0",
+            "police_initial_time": "10.0",
+            "police_deadline": "120.0",
+            "police_min_score": "3.0",
+            "police_max_score": "10.0",
+            "police_risk_score_factor": "0.3",
+            # Stage 4 — Extraction
+            "stage4_max_score": "10.0",
+            "extraction_timer_seconds": "300",
+            "extraction_wrong_sequence_penalty": "1.5",
+            # Final score formula multipliers
+            "score_money_divisor": "1000.0",
+            "score_risk_multiplier": "0.2",
+            "score_time_multiplier": "0.01",
+            # Black Market
+            "market_inflation_rate": "0.25",
+            "market_min_completed_stage": "1",
+            "submission_cooldown_seconds": "2.0",
+        }
+
+        configured_secrets = {
+            "stage1_deletion_key": settings.stage1_deletion_key,
+            "ctf_puzzle3_code": settings.ctf_puzzle3_code,
+            "ctf_control_token": settings.ctf_control_token,
+            "stage4_shutdown_code": settings.stage4_shutdown_code,
+            "stage4_sequence": settings.stage4_sequence,
+        }
+        config_defaults.update({key: value for key, value in configured_secrets.items() if value})
+
+        for key, value in config_defaults.items():
+            if not db.query(ConfigKV).filter(ConfigKV.key == key).one_or_none():
+                db.add(ConfigKV(key=key, value=value))
+        db.commit()
+
+        secret_values = [
+            row.value
+            for row in db.query(ConfigKV).all()
+            if any(part in row.key.lower() for part in ("key", "code", "token", "secret"))
+        ]
+        init_money_trail_db(secret_values)
+
+        clock = db.query(PoliceClock).filter(PoliceClock.id == 1).one_or_none()
+        if not clock:
+            initial_time = db.query(ConfigKV).filter(ConfigKV.key == "police_initial_time").one().value
+            db.add(PoliceClock(id=1, t=float(initial_time), running=True, compromised_json="[]"))
             db.commit()
 
     finally:

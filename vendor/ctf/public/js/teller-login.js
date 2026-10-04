@@ -62,7 +62,7 @@
           if (successMemoCard) {
             successMemoCard.style.display = 'block';
             if (memoTextEl) {
-              memoTextEl.textContent = data.authCode || 'IVB-LEVEL1-7Q2';
+              memoTextEl.textContent = 'TELLER QUERY BYPASS ACCEPTED';
             }
           }
           alert(`LOGIN SUCCESSFUL: ${data.message}`);

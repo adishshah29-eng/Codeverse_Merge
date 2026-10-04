@@ -8,8 +8,6 @@ Enforces:
 """
 from typing import Any, Dict, List, Optional, Tuple
 
-DEFAULT_INFLATION_RATE = 0.25  # 25% inflation per prior purchase by this team
-
 MARKET_CATALOG = {
     "hints": [
         {
@@ -82,7 +80,7 @@ def get_item(category: str, item_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def calculate_team_item_price(item: Dict[str, Any], team_purchase_count: int, inflation_rate: float = DEFAULT_INFLATION_RATE) -> int:
+def calculate_team_item_price(item: Dict[str, Any], team_purchase_count: int, inflation_rate: float) -> int:
     """
     Computes team-specific inflated price.
     Inflation formula: base_price * (1 + inflation_rate * team_purchase_count)
@@ -93,7 +91,7 @@ def calculate_team_item_price(item: Dict[str, Any], team_purchase_count: int, in
     return int(round(base_price * multiplier))
 
 
-def get_catalog_for_team(team_purchase_count: int, purchased_item_ids: List[str], inflation_rate: float = DEFAULT_INFLATION_RATE) -> Dict[str, List[Dict[str, Any]]]:
+def get_catalog_for_team(team_purchase_count: int, purchased_item_ids: List[str], inflation_rate: float) -> Dict[str, List[Dict[str, Any]]]:
     """Generates the market catalog with personalized prices and purchase states for a specific team."""
     team_catalog = {}
     for category, items in MARKET_CATALOG.items():
@@ -104,6 +102,8 @@ def get_catalog_for_team(team_purchase_count: int, purchased_item_ids: List[str]
             current_price = calculate_team_item_price(item, team_purchase_count, inflation_rate)
 
             item_data = dict(item)
+            if times_bought == 0:
+                item_data.pop("intel", None)
             item_data["current_price"] = current_price
             item_data["times_bought"] = times_bought
             item_data["is_maxed"] = is_locked
