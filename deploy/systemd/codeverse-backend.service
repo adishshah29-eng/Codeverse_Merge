@@ -1,0 +1,33 @@
+# /etc/systemd/system/codeverse-backend.service
+[Unit]
+Description=CODEVERSE FastAPI backend (Gunicorn + Uvicorn workers)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=codeverse
+Group=codeverse
+WorkingDirectory=/opt/codeverse/backend
+# Secrets live here (root:root, 600). systemd reads it as root before
+# dropping privileges, so the codeverse user cannot read the file itself.
+EnvironmentFile=/etc/codeverse/backend.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/codeverse/backend/.venv/bin/gunicorn -c gunicorn.conf.py app.main:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=3
+KillMode=mixed
+TimeoutStopSec=40
+LimitNOFILE=65536
+
+# Hardening. (Do not add RestrictNamespaces/ProtectKernelTunables/
+# PrivateDevices: they break the bubblewrap sandbox used for Phase 1 code runs.)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# /etc/cloudflared/config.yml — Cloudflare Tunnel → local Nginx.
+# Created after: cloudflared tunnel login && cloudflared tunnel create codeverse
+tunnel: <TUNNEL-UUID>
+credentials-file: /etc/cloudflared/<TUNNEL-UUID>.json
+
+ingress:
+  - hostname: codeverse.is-a.dev
+    service: http://localhost:80
+    originRequest:
+      httpHostHeader: codeverse.is-a.dev
+  - service: http_status:404

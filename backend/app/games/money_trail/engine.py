@@ -117,9 +117,18 @@ def execute_sql(query: str) -> Tuple[bool, List[str], List[Dict[str, Any]], str]
         with query_engine.connect() as connection:
             connection.exec_driver_sql("BEGIN TRANSACTION READ ONLY")
             connection.exec_driver_sql("SET LOCAL statement_timeout = '5000ms'")
-            result = connection.exec_driver_sql(statement)
-            columns = list(result.keys()) if result.returns_rows else []
-            rows = [dict(row) for row in result.mappings().fetchmany(100)] if result.returns_rows else []
+            # Raw DB-API cursor with no parameters, so a literal % (e.g. LIKE '%x%')
+            # is not treated as a placeholder by the driver.
+            cursor = connection.connection.cursor()
+            try:
+                cursor.execute(statement)
+                if cursor.description:
+                    columns = [col[0] for col in cursor.description]
+                    rows = [dict(zip(columns, row)) for row in cursor.fetchmany(100)]
+                else:
+                    columns, rows = [], []
+            finally:
+                cursor.close()
             connection.rollback()
             return True, columns, rows, ""
     except Exception as exc:

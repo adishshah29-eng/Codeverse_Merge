@@ -77,33 +77,8 @@ A unified, full-stack cybersecurity and optimization competition platform integr
 
 ---
 
-## 🚀 Running Locally
+## Setup, Admin And Deployment
 
-### 1. Start the FastAPI Backend
-```powershell
-cd heist-game/backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### 2. Start the React Frontend
-```powershell
-cd heist-game/frontend
-npm run dev
-```
-Open **`http://localhost:5173`** in your browser.
-
----
-
-## Supabase Auth Setup
-
-Team access uses Supabase Auth. Organizers can create and delete team accounts in the admin dashboard.
-
-Supabase PostgreSQL is the only game database. Team state, scores, configuration, audit events, and the Stage 1 forensic tables all use the same database. SQLite is not supported.
-
-1. Copy `backend/.env.example` to `backend/.env` and fill in the Supabase project URL, anon key, service-role key, and PostgreSQL `DATABASE_URL`. The service-role key is required for team account management; keep it private and only in the backend environment. Apply `supabase/schema.sql` to the database in `DATABASE_URL` before starting the backend.
-2. Sign into the organizer portal and use **TEAM ACCOUNTS** to enter a team code, name, login email, and password. Give the team its login email and password.
-3. Team records are created in the Supabase database and linked to their Supabase Auth user automatically.
-
-Set `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, and `STAGE4_SEQUENCE` in the private backend `.env` before first startup. The game seeds these values into `ConfigKV`; organizers can change them later in the admin configuration panel. Never place event answers in frontend code or public documentation.
-
-The API resolves the team from the verified Supabase user ID; it ignores team identity supplied by the browser. Deleting a team removes its Supabase Auth account and game progress while retaining detached audit events. Set `COOKIE_SECURE=true` when serving over HTTPS. Organizer credentials remain configured with `ADMIN_USERNAME` and `ADMIN_PASSWORD`. Restart the backend after creating or changing `.env`.
+Setup, configuration, administration and deployment for the merged platform are documented in the
+repository [README](../README.md). Teams sign in once on the landing page; this phase is served at
+`/phase2/` and its API under `/api`.
