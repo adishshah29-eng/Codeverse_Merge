@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Black Market — The Professor's Hidden Layer</title>
+  <meta name="description" content="Cinematic interactive puzzle website for Black Market entry.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="scene-container">
+    <canvas id="reveal-canvas"></canvas>
+  </div>
+
+  <!-- Cinematic Layer -->
+  <div id="cinematic-layer" class="cinematic-layer">
+    <div id="cinematic-text" class="cinematic-text"></div>
+  </div>
+
+  <!-- Economy UI Container -->
+  <div id="ui-layer">
+    <!-- Invest Screen (Initial) -->
+    <div id="invest-screen" class="ui-panel cinematic-panel terminal-modal" style="display: none;">
+      <div class="panel-border"></div>
+      <h2>BLACK MARKET</h2>
+      <div class="subtitle" style="color: #00ffaa; margin-bottom: 10px;">SYSTEM OVERRIDE // ACTIVE</div>
+      <div class="funds-display">AVAILABLE FUNDS<br><span id="invest-funds" style="font-size: 24px; color: #00ffaa; margin-top: 10px; display: block;">₹0</span></div>
+      <div class="input-row" style="justify-content: center; flex-direction: column; gap: 10px;">
+        <span style="font-size: 11px; letter-spacing: 2px; color: #66ff66;">POWER THE TORCH</span>
+        <input type="number" id="invest-input" min="10" value="250" class="cinematic-input">
+      </div>
+      <div class="error-msg" id="invest-error"></div>
+      <button id="btn-invest" class="ui-btn" style="border-color: rgba(0, 255, 170, 0.5); color: #00ffaa;">[ IGNITE ]</button>
+    </div>
+
+    <!-- Resurrection Screen -->
+    <div id="resurrection-screen" class="ui-panel cinematic-panel terminal-modal" style="display: none;">
+      <div class="panel-border"></div>
+      <h2>BLACK MARKET</h2>
+      <div class="subtitle" style="color: #ff3c3c; margin-bottom: 10px;">STATUS // DEAD</div>
+      <div class="funds-display">AVAILABLE FUNDS<br><span id="resurrection-funds" style="font-size: 24px; color: #00ffaa; margin-top: 10px; display: block;">₹0</span></div>
+      <div class="input-row" style="justify-content: center; flex-direction: column; gap: 10px;">
+        <span style="font-size: 11px; letter-spacing: 2px; color: #883333;">FUND THE MARKET</span>
+        <input type="number" id="resurrection-input" min="10" value="250" class="cinematic-input">
+      </div>
+      <div class="error-msg" id="resurrection-error"></div>
+      <button id="btn-resurrect" class="ui-btn" style="border-color: rgba(255, 60, 60, 0.5); color: #ff3c3c;">[ RESURRECT ]</button>
+    </div>
+
+    <!-- Minimal HUD -->
+    <div id="hud-container" style="display: none;">
+      <div class="hud-fuel-info">
+        <span class="hud-label" id="hud-team-display">TEAM</span>
+        <span class="hud-label" id="hud-money-display" style="color: #00ffaa;">₹0</span>
+        <span class="hud-label" id="hud-time-display" style="color: #ff3c3c; margin-left: 10px; font-weight: bold;">00:00</span>
+        <div class="hud-bar"><div class="hud-fill" id="hud-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Riddle Trigger -->
+    <button id="btn-riddle" class="riddle-trigger" style="display: none;">[ ? RIDDLE ]</button>
+
+    <!-- Riddle Panel -->
+    <div id="riddle-screen" class="ui-panel cinematic-panel" style="display: none;">
+      <div class="panel-border"></div>
+      <div class="riddle-header" id="riddle-title">RIDDLE // CLASSIFIED</div>
+      <div class="riddle-content" id="riddle-content-text"></div>
+      <button id="btn-close-riddle" class="ui-btn cancel">[ CLOSE FILE ]</button>
+    </div>
+
+    <!-- Final Password Trigger -->
+    <button id="password-trigger-new" class="final-access-btn" style="display: none;">
+      <span class="scanline"></span>
+      <div class="primary-text">ENTER FINAL CODE</div>
+      <div class="secondary-text">AUTHORIZED ACCESS REQUIRED</div>
+    </button>
+
+    <!-- Password Screen -->
+    <div id="password-screen" class="ui-panel cinematic-panel terminal-modal" style="display: none;">
+      <div class="panel-border"></div>
+      <div class="terminal-header">BLACK MARKET TERMINAL</div>
+      <div class="subtitle" style="margin-bottom: 20px;">ENTER ACCESS CODE</div>
+      <div class="input-row" style="justify-content: center;">
+        <input type="text" id="password-input" placeholder="[______________]" autocomplete="off" style="width: 150px; text-align: center; letter-spacing: 2px;">
+      </div>
+      <div class="error-msg" id="password-msg"></div>
+      <button id="btn-submit-password" class="ui-btn">[ VERIFY ACCESS ]</button>
+      <div class="attempts-display">ATTEMPTS: <span id="code-attempts-count">00</span></div>
+      <button id="btn-cancel-password" class="ui-btn cancel">[ CANCEL ]</button>
+    </div>
+  </div>
+
+  <!-- Black Market Hub -->
+  <div id="black-market-hub" class="hub-container" style="display: none;">
+    <div class="hub-header">
+      <div class="hub-title">BLACK MARKET</div>
+      <div class="hub-team-info">
+        <div class="team-id" id="hub-team-id">TEAM 07</div>
+        <div class="team-funds">
+          <span class="funds-label">FUNDS</span>
+          <span class="funds-value" id="hub-funds">₹5000</span>
+          <span class="funds-diff" id="hub-funds-diff"></span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hub-nav">
+      <button class="nav-btn active" data-tab="hints">[ HINTS ]</button>
+      <button class="nav-btn" data-tab="buffs">[ BUFFS ]</button>
+      <button class="nav-btn" data-tab="mystery">[ MYSTERY ]</button>
+    </div>
+    
+    <div class="hub-content" id="hub-content-area">
+      <!-- Items injected here -->
+    </div>
+  </div>
+
+
+  <!-- Calibration Info Panel (active when DEBUG_MODE is true) -->
+  <div id="debug-overlay" class="debug-overlay" style="display: none;">
+    <div class="debug-header">
+      <span class="debug-tag">CALIBRATION MODE [D]</span>
+      <span id="debug-fps">60 FPS</span>
+    </div>
+    <div class="debug-row"><span>Source Dim:</span> <strong id="debug-dim">--</strong></div>
+    <div class="debug-row"><span>Scale / Offset:</span> <span id="debug-transform">--</span></div>
+    <div class="debug-row"><span>Cursor Canvas:</span> <span id="debug-screen-pos">--</span></div>
+    <div class="debug-row highlight"><span>Cursor Source %:</span> <strong id="debug-source-pct">--</strong></div>
+    <div class="debug-row highlight"><span>--- Economy ---</span></div>
+    <div class="debug-row"><span>Money:</span> <strong id="debug-money">--</strong></div>
+    <div class="debug-row"><span>Init Invest:</span> <strong id="debug-invest">--</strong></div>
+    <div class="debug-row"><span>Duration:</span> <strong id="debug-duration">--</strong></div>
+    <div class="debug-row"><span>Radius:</span> <strong id="debug-radius">--</strong></div>
+    <div class="debug-row"><span>Fuel %:</span> <strong id="debug-fuel">--</strong></div>
+    <div class="debug-row highlight"><span>--- Puzzle ---</span></div>
+    <div class="debug-row"><span>Numbers:</span> <strong id="debug-numbers">--</strong></div>
+    <div class="debug-row"><span>Sum:</span> <strong id="debug-sum">--</strong></div>
+    <div class="debug-row"><span>Binary:</span> <strong id="debug-binary">--</strong></div>
+    <div class="debug-row clicked" id="debug-last-click-row">
+      <span>Last Click:</span> <strong id="debug-last-click">Click scene to copy coords</strong>
+    </div>
+    <div class="debug-hint">Click any object to log exact image percentage { x, y }</div>
+    <div class="debug-row highlight"><span>--- Team Debug ---</span></div>
+    <div class="debug-row">
+        <span>TEAM:</span>
+        <select id="debug-team-select" style="background:#0d1217; color:#00ffaa; border:1px solid #00ffaa;">
+            <option value="TEAM_01">TEAM_01</option>
+            <option value="TEAM_07" selected>TEAM_07</option>
+            <option value="TEAM_14">TEAM_14</option>
+        </select>
+    </div>
+    <button id="debug-reset-team" class="ui-btn" style="margin-top: 5px; padding: 2px; font-size: 9px; min-width: auto; width: 100%;">RESET TEAM STATE</button>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/teamService.js"></script>
+  <script src="js/marketplace.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
