@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+import { API_BASE } from "../shared/config";
 
 async function request(endpoint, options = {}) {
   const headers = {

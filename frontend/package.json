@@ -1,21 +1,29 @@
 {
-  "name": "heist-game-frontend",
+  "name": "codeverse-frontend",
   "version": "2.0.0",
   "private": true,
   "type": "module",
+  "description": "CODEVERSE 2.0 — landing hub (/), Phase 1 (/phase1/) and Phase 2 (/phase2/) in one Vite build.",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "lucide-react": "^0.344.0",
+    "@monaco-editor/react": "^4.7.0",
+    "lucide-react": "^0.383.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.160.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^7.3.6"
+    "@vitejs/plugin-react": "^6.1.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vite": "^8.3.0"
   }
 }

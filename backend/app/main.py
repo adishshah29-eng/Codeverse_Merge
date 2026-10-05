@@ -236,7 +236,9 @@ async def request_context(request: Request, call_next):
             content={"detail": "Internal server error", "request_id": request_id},
         )
     duration_ms = (time.perf_counter() - started) * 1000
-    response.headers["X-Request-ID"] = request_id
+    # Some game routes set their own X-Request-Id as part of a puzzle; keep it.
+    if "x-request-id" not in response.headers:
+        response.headers["X-Request-ID"] = request_id
     if request.url.path.startswith("/api/"):
         level = logging.WARNING if response.status_code >= 500 else logging.INFO
         logger.log(level, "%s %s %s %.0fms id=%s", request.method, request.url.path,

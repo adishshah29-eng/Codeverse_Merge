@@ -3,7 +3,6 @@ import Header from "./components/Header";
 import TeamDashboardModal from "./components/TeamDashboardModal";
 import LeaderboardModal from "./components/LeaderboardModal";
 import AdminPortal from "./components/AdminPortal";
-import AuthModal from "./components/AuthModal";
 
 import Game1VaultBreach from "./games/Game1VaultBreach";
 import Game2AlarmSystem from "./games/Game2AlarmSystem";
@@ -11,42 +10,49 @@ import Game3HiddenBlueprint from "./games/Game3HiddenBlueprint";
 import Game4MintMap from "./games/Game4MintMap";
 import Game5PrintingPress from "./games/Game5PrintingPress";
 
-import { progressApi } from "./api";
+import { authApi, progressApi } from "./api";
 import { Trophy, CheckCircle2, ShieldCheck, Flame, ArrowRight } from "lucide-react";
 
 export default function App() {
   const [team, setTeam] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [activeStageId, setActiveStageId] = useState(1);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [phaseError, setPhaseError] = useState("");
 
-  // Initialize session
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Initialize session from the shared platform login (httpOnly cookie).
   useEffect(() => {
-    const savedId = localStorage.getItem("mint_team_id");
-    const savedName = localStorage.getItem("mint_team_name");
-    const savedAdmin = localStorage.getItem("mint_admin_token");
-
-    if (savedAdmin && window.location.hash === "#admin") {
-      setIsAdminOpen(true);
-    }
-
-    if (savedId && savedName) {
-      setTeam({ id: savedId, name: savedName });
-      fetchDashboard(savedId);
-    } else {
-      setIsAuthOpen(true);
-      setLoading(false);
-    }
+    authApi.me()
+      .then((session) => {
+        if (!session.authenticated) {
+          window.location.assign("/");
+          return;
+        }
+        if (session.role === "admin") {
+          setIsAdmin(true);
+          setIsAdminOpen(true);
+          setLoading(false);
+          return;
+        }
+        setTeam({ id: null, name: session.team?.name });
+        fetchDashboard();
+      })
+      .catch((err) => {
+        console.error("Session check failed:", err);
+        window.location.assign("/");
+      });
   }, []);
 
   const fetchDashboard = useCallback(async () => {
     try {
       const data = await progressApi.getDashboard();
       setDashboard(data);
+      setTeam({ id: data.team_id, name: data.team_name });
       // Auto-set to current active stage if valid
       if (data.current_stage <= 5) {
         setActiveStageId((prev) => {
@@ -60,30 +66,23 @@ export default function App() {
       }
     } catch (err) {
       console.error("Dashboard fetch error:", err);
-      // If unauthorized, prompt login
-      if (err.message?.includes("401") || err.message?.includes("Unauthorized")) {
-        localStorage.removeItem("mint_team_id");
-        setTeam(null);
-        setIsAuthOpen(true);
+      // Session expired: return to the shared login page
+      if (err.status === 401) {
+        window.location.assign("/");
+      } else if (err.status === 403) {
+        setPhaseError(err.message);
       }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const handleLoginSuccess = (teamData) => {
-    setTeam(teamData);
-    setIsAuthOpen(false);
-    fetchDashboard();
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("mint_team_id");
-    localStorage.removeItem("mint_team_name");
-    localStorage.removeItem("mint_admin_token");
-    setTeam(null);
-    setDashboard(null);
-    setIsAuthOpen(true);
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      window.location.assign("/");
+    }
   };
 
   const handleStageSelect = (stageId) => {
@@ -101,7 +100,7 @@ export default function App() {
         dashboard={dashboard}
         onOpenDashboard={() => setIsDashboardOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenAdmin={isAdmin ? () => setIsAdminOpen(true) : null}
         onLogout={handleLogout}
         onSelectStage={handleStageSelect}
         activeStageId={activeStageId}
@@ -110,7 +109,17 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         
-        {loading ? (
+        {phaseError ? (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 font-mono text-sm text-[#d4af37]">
+            <p>{phaseError}</p>
+            <a href="/" className="underline text-gray-300 hover:text-white">Back to mission hub</a>
+          </div>
+        ) : isAdmin ? (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 font-mono text-sm text-[#d4af37]">
+            <p>Organizer session active.</p>
+            <button onClick={() => setIsAdminOpen(true)} className="underline text-gray-300 hover:text-white">Open Phase 1 admin portal</button>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 font-mono text-sm text-[#d4af37]">
             <div className="w-12 h-12 rounded-full border-2 border-[#d4af37] border-t-transparent animate-spin" />
             <p>Syncing with Royal Mint Security Kernel...</p>
@@ -246,16 +255,7 @@ export default function App() {
 
       <AdminPortal
         isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-      />
-
-      <AuthModal
-        isOpen={isAuthOpen}
-        onSuccess={handleLoginSuccess}
-        onAdminAccess={() => {
-          setIsAuthOpen(false);
-          setIsAdminOpen(true);
-        }}
+        onClose={() => (isAdmin ? window.location.assign("/") : setIsAdminOpen(false))}
       />
 
       {/* Footer */}

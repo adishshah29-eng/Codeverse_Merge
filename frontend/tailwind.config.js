@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // Tailwind is used by Phase 1 only; its CSS is loaded only on /phase1/.
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./phase1/index.html",
+    "./src/phase1/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',
   theme: {

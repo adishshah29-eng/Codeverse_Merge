@@ -4,6 +4,7 @@ import {
   CircleDollarSign,
   Clock3,
   LayoutDashboard,
+  LayoutGrid,
   Lightbulb,
   LogOut,
   ShieldAlert,
@@ -68,6 +69,7 @@ export default function Navbar({
             <button className="icon-command" onClick={onOpenHints} title="Open intelligence" aria-label="Open intelligence"><Lightbulb size={17} /></button>
           </>}
           {role === "admin" && <span className="command-admin"><ShieldAlert size={15} /> ORGANIZER COMMAND</span>}
+          <a className="icon-command" href="/" title="Mission hub (all phases)" aria-label="Mission hub"><LayoutGrid size={17} /></a>
           <button className="icon-command logout-command" onClick={onLogout} title="Sign out" aria-label="Sign out"><LogOut size={17} /></button>
         </div>
       </div>

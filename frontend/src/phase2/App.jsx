@@ -73,10 +73,12 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await api.logout();
-    setRole(null);
-    setTeam(null);
-    setActiveView("login");
+    try {
+      await api.logout();
+    } finally {
+      // One shared login for all phases lives on the landing page.
+      window.location.assign("/");
+    }
   };
 
   const handleStageCompleted = async (stageId, scoreEarned) => {

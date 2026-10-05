@@ -1,0 +1,113 @@
+/* Landing hub — builds on the Phase 2 design tokens (../phase2/index.css). */
+.hub-center {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+}
+
+.hub-page {
+  min-height: 100vh;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  color: var(--text-main);
+}
+
+.hub-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.hub-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 6px 0;
+}
+
+.hub-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  margin: 0;
+}
+
+.hub-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.18s, transform 0.18s, background 0.18s;
+}
+
+.hub-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hub-card p {
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+a.hub-card:hover {
+  border-color: var(--crimson);
+  background: var(--bg-surface-elevated);
+  transform: translateY(-2px);
+}
+
+.hub-card-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hub-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--crimson);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 640px) {
+  .hub-page { padding: 28px 16px; }
+  .hub-header { flex-direction: column; }
+}

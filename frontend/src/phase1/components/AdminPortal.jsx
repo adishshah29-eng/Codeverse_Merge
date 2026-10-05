@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   ShieldCheck, RefreshCw, X, RotateCcw, UserX, UserCheck, 
-  Trash2, Plus, Sliders, History, AlertCircle
+  Trash2, Sliders, History, AlertCircle
 } from "lucide-react";
 import { adminApi } from "../api";
 
@@ -12,8 +12,6 @@ export default function AdminPortal({ isOpen, onClose }) {
   const [config, setConfig] = useState(null);
   const [configJson, setConfigJson] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
-  const [newTeamName, setNewTeamName] = useState("");
-  const [newTeamPasscode, setNewTeamPasscode] = useState("");
   const [actionMsg, setActionMsg] = useState("");
 
   const loadData = async () => {
@@ -68,27 +66,13 @@ export default function AdminPortal({ isOpen, onClose }) {
   };
 
   const handleDeleteTeam = async (teamId, teamName) => {
-    if (!window.confirm(`Permanently delete team "${teamName}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete all Phase 1 progress for "${teamName}"? Their login is kept; this cannot be undone.`)) return;
     try {
       await adminApi.deleteTeam(teamId);
-      setActionMsg(`Team "${teamName}" deleted.`);
+      setActionMsg(`Phase 1 progress for "${teamName}" deleted.`);
       loadData();
     } catch (err) {
       setActionMsg(err.message || "Failed to delete team.");
-    }
-  };
-
-  const handleAddTeam = async (e) => {
-    e.preventDefault();
-    if (!newTeamName || !newTeamPasscode) return;
-    try {
-      await adminApi.addTeam(newTeamName, newTeamPasscode);
-      setNewTeamName("");
-      setNewTeamPasscode("");
-      setActionMsg("New team enrolled successfully.");
-      loadData();
-    } catch (err) {
-      setActionMsg(err.message || "Failed to enroll team.");
     }
   };
 
@@ -187,30 +171,12 @@ export default function AdminPortal({ isOpen, onClose }) {
 
           {activeTab === "teams" && (
             <>
-              {/* Add Team Quick Form */}
-              <form onSubmit={handleAddTeam} className="p-4 rounded-xl bg-[#111726] border border-[#23304d] flex flex-wrap items-center gap-3">
-                <span className="text-xs font-mono font-bold text-gray-300 uppercase">Enroll Team:</span>
-                <input
-                  type="text"
-                  placeholder="Team Name"
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg bg-[#161f33] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
-                />
-                <input
-                  type="text"
-                  placeholder="Passcode"
-                  value={newTeamPasscode}
-                  onChange={(e) => setNewTeamPasscode(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg bg-[#161f33] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-mono font-bold flex items-center gap-1 shadow"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Enlist
-                </button>
-              </form>
+              {/* Team accounts are created in the main admin dashboard (shared login) */}
+              <div className="p-4 rounded-xl bg-[#111726] border border-[#23304d] text-xs font-mono text-gray-300">
+                Team accounts are created once for the whole event in the{" "}
+                <a href="/phase2/" className="text-[#d4af37] underline">main admin dashboard</a> (TEAM ACCOUNTS).
+                A team appears here automatically when it first opens Phase 1.
+              </div>
 
               {/* Teams Table */}
               <div className="bg-[#111726] rounded-xl border border-[#23304d] overflow-hidden">
@@ -230,9 +196,6 @@ export default function AdminPortal({ isOpen, onClose }) {
                       <tr key={t.id} className="hover:bg-[#161f33]/60 transition">
                         <td className="py-2.5 px-3 font-bold text-white">
                           {t.name}
-                          <span className="text-[10px] text-gray-500 font-normal block">
-                            Key: {t.passcode}
-                          </span>
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="px-2 py-0.5 rounded bg-[#161f33] border border-[#23304d] text-[#00e5ff] font-bold">

@@ -10,7 +10,7 @@
 
   const config = window.__CTF_CONFIG__ || {
     basePath: '/ctf',
-    mainSiteUrl: 'http://localhost:8080',
+    mainSiteUrl: '/phase2/',
     token: ''
   };
 
@@ -469,7 +469,7 @@
     }
 
     if (modalReturnBtn) {
-      modalReturnBtn.href = gameState.mainSiteUrl || config.mainSiteUrl || 'http://localhost:8080';
+      modalReturnBtn.href = gameState.mainSiteUrl || config.mainSiteUrl || '/phase2/';
     }
 
     elSummaryModal.classList.add('active');

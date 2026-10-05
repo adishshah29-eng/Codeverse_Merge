@@ -156,18 +156,29 @@ export default function Header({
               <span className="hidden sm:inline">Board</span>
             </button>
 
-            <button
-              onClick={onOpenAdmin}
-              className="p-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-gray-400 hover:text-white transition"
-              title="Admin Portal"
+            <a
+              href="/"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs font-mono font-medium text-gray-200 transition"
+              title="Back to the mission hub (all phases)"
             >
-              <Settings className="w-4 h-4 text-gray-300" />
-            </button>
+              <span className="hidden sm:inline">Hub</span>
+              <span className="sm:hidden">&larr;</span>
+            </a>
+
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="p-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-gray-400 hover:text-white transition"
+                title="Admin Portal"
+              >
+                <Settings className="w-4 h-4 text-gray-300" />
+              </button>
+            )}
 
             <button
               onClick={onLogout}
               className="p-1.5 rounded-lg bg-rose-950/20 hover:bg-rose-900/30 border border-rose-900/30 text-rose-400 transition"
-              title="Switch Team / Logout"
+              title="Sign out"
             >
               <LogOut className="w-4 h-4" />
             </button>

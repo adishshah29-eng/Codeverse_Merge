@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE } from "../../shared/config";
 import { api } from "../api";
 
 export default function Stage2ControlServer({ team, onStageCompleted }) {
@@ -86,7 +87,7 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
 
   const testBalanceHeader = async () => {
     try {
-      const res = await fetch("/api/ctf/balance?acct=1001");
+      const res = await fetch(`${API_BASE}/ctf/balance?acct=1001`, { credentials: "same-origin" });
       const data = await res.json();
       const auditCode = res.headers.get("x-audit-code");
       const requestId = res.headers.get("x-request-id");

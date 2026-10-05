@@ -1,42 +1,38 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+import { API_BASE as PLATFORM_API } from "../shared/config";
 
-function getHeaders(teamId = null, adminToken = null) {
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  const activeTeamId = teamId || localStorage.getItem("mint_team_id");
-  if (activeTeamId) {
-    headers["X-Team-ID"] = activeTeamId;
-  }
-  const activeAdminToken = adminToken || localStorage.getItem("mint_admin_token");
-  if (activeAdminToken) {
-    headers["X-Admin-Token"] = activeAdminToken;
-  }
-  return headers;
-}
+// Phase 1 endpoints live under /api/phase1. Identity comes from the httpOnly
+// session cookie set by the shared login — no team id or admin passcode is
+// stored in the browser or sent in headers.
+const API_BASE = `${PLATFORM_API}/phase1`;
 
-export async function apiRequest(endpoint, method = "GET", body = null, customHeaders = {}) {
+async function request(url, method = "GET", body = null, customHeaders = {}) {
   const options = {
     method,
-    headers: { ...getHeaders(), ...customHeaders },
+    headers: { "Content-Type": "application/json", ...customHeaders },
+    credentials: "same-origin",
   };
   if (body) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, options);
+  const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || data.message || `API Error: ${response.statusText}`);
+    const error = new Error(data.detail || data.message || `API Error: ${response.statusText}`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
 
-// ── Auth API ──
+export function apiRequest(endpoint, method = "GET", body = null, customHeaders = {}) {
+  return request(`${API_BASE}${endpoint}`, method, body, customHeaders);
+}
+
+// ── Platform session (shared with Phase 2 and the landing page) ──
 export const authApi = {
-  register: (name, passcode) => apiRequest("/auth/register", "POST", { name, passcode }),
-  login: (name, passcode) => apiRequest("/auth/login", "POST", { name, passcode }),
-  adminLogin: (passcode) => apiRequest("/auth/admin-login", "POST", { passcode }),
+  me: () => request(`${PLATFORM_API}/auth/me`),
+  logout: () => request(`${PLATFORM_API}/auth/logout`, "POST"),
 };
 
 // ── Progression API ──
@@ -90,7 +86,6 @@ export const leaderboardApi = {
 // ── Admin API ──
 export const adminApi = {
   getTeams: () => apiRequest("/admin/teams"),
-  addTeam: (name, passcode) => apiRequest("/admin/teams", "POST", { name, passcode }),
   updateTeam: (teamId, data) => apiRequest(`/admin/teams/${teamId}`, "PATCH", data),
   deleteTeam: (teamId) => apiRequest(`/admin/teams/${teamId}`, "DELETE"),
   getConfig: () => apiRequest("/admin/config"),
