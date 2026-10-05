@@ -27,8 +27,13 @@ env/
 
 # ── Local databases ──────────────────────────────────────────────────────
 *.db
+*.db-wal
+*.db-shm
+*.db.seed.lock
 *.sqlite
 *.sqlite3
+backend/data/
+backups/
 .local-data/
 
 # ── Node / Vite ──────────────────────────────────────────────────────────
@@ -57,3 +62,6 @@ Thumbs.db
 Desktop.ini
 .vscode/
 .idea/
+
+# Stray Python package downloads
+*.whl

@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from app.phase1.core.config import settings
 from app.phase1.core.database import (
     decode_json,
-    get_supabase,
+    get_store,
     insert_row,
     log_audit,
     select_one,
@@ -25,7 +25,7 @@ class ProgressionEngine:
     def get_or_create_team_for_core(core_team_id: int, name: str) -> Dict[str, Any]:
         """Return the Phase 1 record for a platform team, creating it on first use.
 
-        Teams authenticate once through the platform login (Supabase Auth);
+        Teams authenticate once through the platform login;
         their Phase 1 progress lives in p1_teams, linked by core_team_id.
         """
         team = select_one("p1_teams", {"core_team_id": core_team_id})
@@ -68,7 +68,7 @@ class ProgressionEngine:
             "penalty_points": 0.0,
             "metadata": {},
         } for stage_id in range(1, settings.TOTAL_STAGES + 1)]
-        get_supabase().table("p1_stage_progress").insert(stages).execute()
+        get_store().table("p1_stage_progress").insert(stages).execute()
         log_audit("TEAM_REGISTERED", {"team_name": name.strip(), "core_team_id": core_team_id}, team_id)
         return team
 
@@ -123,7 +123,7 @@ class ProgressionEngine:
             "feedback": feedback,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        get_supabase().rpc("p1_increment_stage_attempt", {
+        get_store().rpc("p1_increment_stage_attempt", {
             "p_team_id": team_id,
             "p_stage_id": stage_id,
             "p_passed": passed,

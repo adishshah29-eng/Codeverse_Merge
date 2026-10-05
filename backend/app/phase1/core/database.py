@@ -1,9 +1,8 @@
 """
 core/database.py
 ────────────────
-Supabase client singleton + helper functions.
-All data is stored in Supabase PostgreSQL (JSONB columns, UUID primary keys).
-The SQLite heist_unified.db is no longer used.
+Phase 1 data access helpers. Data lives in the platform's SQLite database
+(tables prefixed p1_), accessed through core/sqlite_store.py.
 """
 
 import json
@@ -12,26 +11,19 @@ import uuid
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
-from supabase import create_client, Client
 from app.phase1.core.config import settings
+from app.phase1.core.sqlite_store import Client, client
 
 logger = logging.getLogger(__name__)
 
-# ── Supabase Client Singleton ─────────────────────────────────────────────────
 
-_supabase_client: Optional[Client] = None
-
-
-def get_supabase() -> Client:
-    """Returns the Supabase client singleton, creating it on first call."""
-    global _supabase_client
-    if _supabase_client is None:
-        _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-    return _supabase_client
+def get_store() -> Client:
+    """Returns the Phase 1 table client (Supabase-style query builder over SQLite)."""
+    return client
 
 
 def select_rows(table: str, filters: Optional[Dict[str, Any]] = None, order_by: Optional[str] = None, ascending: bool = True) -> list[Dict[str, Any]]:
-    query = get_supabase().table(table).select("*")
+    query = get_store().table(table).select("*")
     for column, value in (filters or {}).items():
         query = query.eq(column, value)
     if order_by:
@@ -45,19 +37,19 @@ def select_one(table: str, filters: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def insert_row(table: str, values: Dict[str, Any]) -> Dict[str, Any]:
-    result = get_supabase().table(table).insert(values).execute()
+    result = get_store().table(table).insert(values).execute()
     return result.data[0] if result.data else values
 
 
 def update_rows(table: str, filters: Dict[str, Any], values: Dict[str, Any]) -> list[Dict[str, Any]]:
-    query = get_supabase().table(table).update(values)
+    query = get_store().table(table).update(values)
     for column, value in filters.items():
         query = query.eq(column, value)
     return query.execute().data or []
 
 
 def delete_rows(table: str, filters: Dict[str, Any]) -> None:
-    query = get_supabase().table(table).delete()
+    query = get_store().table(table).delete()
     for column, value in filters.items():
         query = query.eq(column, value)
     query.execute()
@@ -82,7 +74,7 @@ def seed_default_scoring_config():
     does not already exist. Safe to call on every startup.
     """
     try:
-        sb = get_supabase()
+        sb = get_store()
         result = sb.table("p1_dynamic_config").select("key").eq("key", "scoring").execute()
         if not result.data:
             sb.table("p1_dynamic_config").insert({
@@ -92,25 +84,24 @@ def seed_default_scoring_config():
             }).execute()
     except Exception as exc:
         # Non-fatal: config falls back to settings.SCORING_CONFIG
-        logger.warning("Could not seed Phase 1 scoring config in Supabase: %s", exc)
+        logger.warning("Could not seed Phase 1 scoring config: %s", exc)
 
 
 # ── Scoring Config Helpers ────────────────────────────────────────────────────
 
 def get_scoring_config() -> Dict[str, Any]:
     """
-    Reads scoring config from Supabase dynamic_config table.
+    Reads scoring config from the p1_dynamic_config table.
     Falls back to settings.SCORING_CONFIG if not found or on error.
     """
     try:
-        sb = get_supabase()
+        sb = get_store()
         result = sb.table("p1_dynamic_config").select("value").eq("key", "scoring").execute()
         if result.data:
             val = result.data[0]["value"]
-            # Supabase JSONB columns are returned as Python dicts already
             return val if isinstance(val, dict) else json.loads(val)
     except Exception as exc:
-        logger.warning("Could not read Phase 1 scoring config from Supabase: %s", exc)
+        logger.warning("Could not read Phase 1 scoring config: %s", exc)
     return settings.SCORING_CONFIG
 
 
@@ -118,7 +109,7 @@ def update_scoring_config(new_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Upserts scoring config into dynamic_config. Returns the saved config.
     """
-    sb = get_supabase()
+    sb = get_store()
     sb.table("p1_dynamic_config").upsert({
         "key": "scoring",
         "value": new_config,
@@ -135,7 +126,7 @@ def log_audit(action: str, details: Dict[str, Any], team_id: Optional[str] = Non
     so they never interrupt the main request flow.
     """
     try:
-        sb = get_supabase()
+        sb = get_store()
         sb.table("p1_audit_logs").insert({
             "id": str(uuid.uuid4()),
             "team_id": team_id,

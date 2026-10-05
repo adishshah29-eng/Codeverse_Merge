@@ -1,0 +1,9 @@
+# /etc/systemd/system/codeverse-backup.service
+[Unit]
+Description=Back up the CODEVERSE SQLite database
+
+[Service]
+Type=oneshot
+User=codeverse
+Group=codeverse
+ExecStart=/opt/codeverse/scripts/backup-db.sh /var/lib/codeverse/codeverse.db /var/backups/codeverse

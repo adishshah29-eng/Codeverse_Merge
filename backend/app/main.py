@@ -1,4 +1,6 @@
+import fcntl
 import logging
+import sqlite3
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -9,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .logging_config import configure_logging
@@ -16,12 +19,13 @@ from .settings import ROOT, settings
 
 configure_logging()
 
-from .db import Base, engine, SessionLocal  # noqa: E402
+from .db import DATABASE_PATH, Base, SessionLocal, engine, secure_database_files, write_intent  # noqa: E402
 from .games.money_trail.engine import init_money_trail_db  # noqa: E402
 from .models import ConfigKV, HintCatalog, PoliceClock, StageProgress, Team  # noqa: E402
 from .phases import ACTIVE_PHASES_KEY, DEFAULT_ACTIVE_PHASES, active_phases, require_phase  # noqa: E402
 from .routers import admin, auth, ctf, extraction, hints, market, money_trail, police, stages  # noqa: E402
 from .phase1.core.database import seed_default_scoring_config  # noqa: E402
+from .phase1.core.sqlite_store import create_schema as create_phase1_schema  # noqa: E402
 from .phase1.games.sandbox import log_sandbox_status  # noqa: E402
 from .phase1.routers import admin as p1_admin  # noqa: E402
 from .phase1.routers import games as p1_games  # noqa: E402
@@ -30,20 +34,20 @@ from .phase1.routers import progression as p1_progression  # noqa: E402
 
 logger = logging.getLogger("codeverse")
 
-# Arbitrary constant: serializes startup seeding across Gunicorn workers.
-_SEED_LOCK_ID = 727_2026
 
 
 def seed_database():
     """Initializes tables and seeds initial teams, hint catalog, clocks, and config if not already present."""
-    with engine.connect() as lock_conn:
+    lock_path = f"{DATABASE_PATH}.seed.lock"
+    with open(lock_path, "w") as lock_file:
         # Every Gunicorn worker runs startup; only one may seed at a time.
-        lock_conn.execute(text("SELECT pg_advisory_lock(:id)"), {"id": _SEED_LOCK_ID})
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
         try:
             _seed_database()
+            create_phase1_schema()
         finally:
-            lock_conn.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": _SEED_LOCK_ID})
-            lock_conn.commit()
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+    secure_database_files()
 
 
 def _seed_database():
@@ -223,18 +227,41 @@ if settings.cors_origin_list:
     )
 
 
+def _internal_error(request_id: str) -> JSONResponse:
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "request_id": request_id})
+
+
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request_id = request.headers.get("x-request-id", "")[:64] or uuid.uuid4().hex[:16]
     started = time.perf_counter()
+    # Data-changing requests take the SQLite write lock at transaction start.
+    # Phase 1 writes go through its own store (one short transaction per
+    # statement); its SQLAlchemy session only reads the login, so it must not
+    # hold the write lock or Phase 1's own writes would wait on it.
+    write_intent.set(
+        request.method in ("POST", "PUT", "PATCH", "DELETE")
+        and not request.url.path.startswith("/api/phase1/")
+        # Login checks a password hash first (slow) and writes afterwards in
+        # its own short transaction.
+        and request.url.path != "/api/auth/login"
+    )
     try:
         response = await call_next(request)
+    except (OperationalError, sqlite3.OperationalError) as exc:
+        if "locked" in str(exc) or "busy" in str(exc):
+            logger.warning("Database busy id=%s %s %s", request_id, request.method, request.url.path)
+            response = JSONResponse(
+                status_code=503,
+                content={"detail": "Server is busy, please retry in a moment.", "request_id": request_id},
+                headers={"Retry-After": "2"},
+            )
+        else:
+            logger.exception("Database error id=%s %s %s", request_id, request.method, request.url.path)
+            response = _internal_error(request_id)
     except Exception:
         logger.exception("Unhandled error id=%s %s %s", request_id, request.method, request.url.path)
-        response = JSONResponse(
-            status_code=500,
-            content={"detail": "Internal server error", "request_id": request_id},
-        )
+        response = _internal_error(request_id)
     duration_ms = (time.perf_counter() - started) * 1000
     # Some game routes set their own X-Request-Id as part of a puzzle; keep it.
     if "x-request-id" not in response.headers:

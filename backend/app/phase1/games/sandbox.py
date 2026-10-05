@@ -6,7 +6,7 @@ Layers of protection, from always-on to best available:
    API of CPU (callers get a "busy, retry" result instead).
 2. A fresh temporary working directory containing only the files the stage
    needs (never the answer key or application source).
-3. A scrubbed environment: no Supabase keys, database URLs or other secrets
+3. A scrubbed environment: no secret keys, database paths or other secrets
    are inherited from the server process.
 4. Resource limits: CPU seconds, address space, file size, open files, no
    core dumps; the whole process group is killed on timeout.

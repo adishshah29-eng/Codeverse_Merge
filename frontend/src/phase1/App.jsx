@@ -260,7 +260,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-[#23304d] py-3 px-6 text-center text-xs font-mono text-gray-500">
-        CODEVERSE 2.0 &bull; Royal Mint Heist Unified Challenge Platform &bull; FastAPI + React.js + Supabase
+        CODEVERSE 2.0 &bull; Royal Mint Heist Unified Challenge Platform &bull; FastAPI + React.js + SQLite
       </footer>
 
     </div>

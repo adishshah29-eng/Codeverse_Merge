@@ -7,6 +7,10 @@ One platform for both CODEVERSE competition phases:
 | 1 | **Royal Mint Heist** | Vault Breach · Alarm System · Hidden Blueprint · Mint Map · Printing Press | `/phase1/` |
 | 2 | **Operación Fuga** | Money Trail · Control Server · Outrun the Police · Final Extraction (+ Black Market) | `/phase2/` |
 
+> **SQLite edition** (branch `claude/repo-work-wd3ehi-sqlite`): everything is stored in a single
+> SQLite file on the server and team logins are handled by the backend itself — no Supabase or
+> other external service is needed. The `claude/repo-work-wd3ehi` branch is the Supabase edition.
+
 Teams sign in **once** on the landing page (`/`) and can open whichever phases the
 organizers have opened. Game rules for players: [docs/PHASE1_GAME_GUIDE.md](docs/PHASE1_GAME_GUIDE.md),
 [docs/PHASE2_GAME_GUIDE.md](docs/PHASE2_GAME_GUIDE.md).
@@ -27,16 +31,18 @@ This repository was created by merging
                      /vendor/                         ◄─────┤  static game assets (vendor/)
                      /api/*  ───────────────────────────────┘► Gunicorn + Uvicorn workers :8000 (FastAPI)
                                                                    │
-                                                  Supabase Cloud ◄─┘  Auth (team logins) + Postgres (all data)
+                                          /var/lib/codeverse/codeverse.db  (SQLite, WAL mode)
 ```
 
 * **Frontend** — one Vite build with three pages: the hub/login (`/`), Phase 1 and Phase 2.
   All API calls go to the same origin under `/api` (no hardcoded hosts).
-* **Backend** — one FastAPI app. Phase 2 endpoints are at `/api/*` (unchanged); Phase 1
-  endpoints are at `/api/phase1/*`. Shared: `/api/auth/*`, `/api/admin/*`, `/api/health`.
-* **Auth** — teams log in with their Supabase Auth email + password through the backend, which
-  sets an httpOnly cookie. Organizers log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
-  The browser never sees any Supabase key.
+* **Backend** — one FastAPI app. Phase 2 endpoints are at `/api/*`; Phase 1 endpoints are at
+  `/api/phase1/*`. Shared: `/api/auth/*`, `/api/admin/*`, `/api/health`.
+* **Database** — one SQLite file shared by all workers (WAL mode). Phase 1 tables are prefixed
+  `p1_`. Tables are created automatically on first start; there is no schema to run by hand.
+* **Auth** — organizers create team accounts (code, name, email, password) in the admin
+  dashboard; passwords are stored as salted scrypt hashes. Login sets a signed httpOnly cookie.
+  Organizers log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 * **Server-authoritative games** — all answers, timers, scores, penalties, hints, wallets and
   progression are stored and computed on the server. The client only sends attempts.
 
@@ -48,13 +54,14 @@ This repository was created by merging
 │   ├── app/
 │   │   ├── main.py             # FastAPI app: routers, logging, errors, health, startup seeding
 │   │   ├── settings.py         # all configuration (environment variables)
-│   │   ├── auth.py             # session verification (Supabase JWT / admin JWT)
+│   │   ├── auth.py             # session cookies (team + organizer)
+│   │   ├── passwords.py        # scrypt password hashing
 │   │   ├── phases.py           # which phases are open (active_phases)
-│   │   ├── db.py, models.py    # SQLAlchemy (Phase 2 + shared teams)
+│   │   ├── db.py, models.py    # SQLite via SQLAlchemy (Phase 2 + shared teams)
 │   │   ├── routers/            # Phase 2 + shared endpoints  (/api/...)
 │   │   ├── games/              # Phase 2 game engines
 │   │   └── phase1/             # Phase 1  (/api/phase1/...)
-│   │       ├── core/           #   config, Supabase REST access, progression, scoring
+│   │       ├── core/           #   config, SQLite store, progression, scoring
 │   │       ├── games/          #   game rules + sandbox.py (isolated code execution)
 │   │       ├── routers/        #   endpoints
 │   │       ├── data/           #   challenge data, ML datasets, private answer key
@@ -74,15 +81,15 @@ This repository was created by merging
 │   ├── public/                 # static images
 │   ├── package.json, package-lock.json, vite.config.js
 │   └── .env.example
-├── supabase/schema.sql         # complete database schema (run once)
 ├── vendor/                     # static mini-sites used by Phase 2 (market iframe, CTF pages)
 ├── deploy/
 │   ├── nginx/codeverse.conf
-│   ├── systemd/codeverse-backend.service
+│   ├── systemd/codeverse-backend.service, codeverse-backup.{service,timer}
 │   ├── cloudflared/config.yml.example
 │   └── apparmor/bwrap
 ├── scripts/
 │   ├── dev-backend.sh, dev-frontend.sh
+│   ├── backup-db.sh            # online SQLite backup
 │   └── deploy.sh               # update an existing server deployment
 └── docs/                       # player-facing game guides
 ```
@@ -95,51 +102,31 @@ Template: [`backend/.env.example`](backend/.env.example) (every variable is docu
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `ENVIRONMENT` | prod | `production` enables strict startup checks (refuses to start if insecure) |
-| `SUPABASE_URL` | ✅ | `https://<project-ref>.supabase.co` |
-| `SUPABASE_ANON_KEY` | ✅ | used server-side for team password login |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | creating team accounts; Phase 1 data access. **Backend only.** |
-| `SUPABASE_JWT_SECRET` | optional | verify sessions locally (faster); not needed for projects on the new JWT signing keys |
-| `DATABASE_URL` | ✅ | Supabase Postgres (use the pooler, port 6543, for 300–400 players) |
-| `FORENSIC_DATABASE_URL` | ✅ prod | read-only `forensic_reader` role for the Phase 2 Stage 1 SQL console |
-| `SECRET_KEY` | ✅ | ≥ 32 random chars; signs organizer sessions |
+| `DATABASE_PATH` | prod | SQLite file; production `/var/lib/codeverse/codeverse.db` (default in dev: `backend/data/codeverse.db`) |
+| `SECRET_KEY` | ✅ | ≥ 32 random chars; signs team and organizer sessions |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | ✅ | organizer login (password ≥ 12 chars in production) |
 | `COOKIE_SECURE` | ✅ prod | `true` behind HTTPS |
 | `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | ✅ | Phase 2 answers (seeded on first start, editable in admin) |
 | `CORS_ORIGINS` | no | leave empty (same-origin deployment) |
 | `CODE_SANDBOX` | prod | `bwrap` in production (Phase 1 code isolation) |
 | `CODE_EXEC_MAX_CONCURRENT`, `CODE_EXEC_QUEUE_TIMEOUT`, `CODE_EXEC_MEMORY_MB` | no | Phase 1 code-run limits |
-| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `GUNICORN_WORKERS` | no | capacity tuning |
+| `SQLITE_BUSY_TIMEOUT_MS`, `GUNICORN_WORKERS` | no | capacity tuning |
 | `LOG_LEVEL`, `ENABLE_DOCS` | no | logging; `/api/docs` (keep off in production) |
 
 Frontend: [`frontend/.env.example`](frontend/.env.example) has a single, non-secret
-`VITE_API_BASE_URL` (default `/api`). **Never** put keys in any `VITE_*` variable — they are
+`VITE_API_BASE_URL` (default `/api`). **Never** put secrets in any `VITE_*` variable — they are
 compiled into public JavaScript.
-
-## Supabase setup (once)
-
-1. Create a Supabase project.
-2. SQL Editor → paste and run **all** of [`supabase/schema.sql`](supabase/schema.sql). It is safe to re-run.
-3. In the SQL Editor, give the read-only console role a password (choose your own):
-   ```sql
-   ALTER ROLE forensic_reader WITH LOGIN PASSWORD '<strong-password>';
-   ```
-4. Authentication → Providers → Email: keep enabled; **disable "Allow new users to sign up"**
-   (team accounts are created by organizers from the admin dashboard).
-5. Authentication → Sessions / JWT: set the **access token (JWT) expiry** to cover the whole event
-   (e.g. `43200` = 12 h). The backend keeps the access token only, so teams must sign in again
-   when it expires.
-6. Copy the URL, anon key, service-role key and database connection strings into the backend env file.
 
 ## Run locally
 
-Requirements: Python 3.12, Node.js ≥ 20.19, a Supabase project (set up as above).
+Requirements: Python 3.12, Node.js ≥ 20.19. Nothing else — the database is a local file.
 
 ```bash
-git clone https://github.com/adishshah29-eng/Codeverse_Merge.git codeverse
+git clone -b claude/repo-work-wd3ehi-sqlite https://github.com/adishshah29-eng/Codeverse_Merge.git codeverse
 cd codeverse
 
 # Backend
-cp backend/.env.example backend/.env      # fill in your Supabase values
+cp backend/.env.example backend/.env      # set SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD, answers
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r backend/requirements.txt
 cd backend && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
@@ -156,7 +143,9 @@ npm run dev          # http://localhost:5173  (proxies /api and /vendor to :8000
 Shortcuts: `./scripts/dev-backend.sh` and `./scripts/dev-frontend.sh`.
 
 Open http://localhost:5173, sign in as the organizer (`ADMIN_USERNAME` / `ADMIN_PASSWORD`),
-open **Phase 2 → admin → TEAM ACCOUNTS** to create a team, then sign in as that team.
+open **Phase 2 → admin → TEAM ACCOUNTS** to create a team (code, name, email, password), then
+sign in as that team. The database is created at `backend/data/codeverse.db`; delete that file
+to start over.
 
 Locally, `CODE_SANDBOX=auto` uses bubblewrap if installed (`sudo apt install bubblewrap`) and
 otherwise runs Phase 1 code with resource limits only. Set `ENABLE_DOCS=true` to browse
@@ -186,7 +175,7 @@ sudo chown codeverse:codeverse /opt/codeverse
 ### 2. Code, dependencies, build
 
 ```bash
-sudo -u codeverse git clone https://github.com/adishshah29-eng/Codeverse_Merge.git /opt/codeverse
+sudo -u codeverse git clone -b claude/repo-work-wd3ehi-sqlite https://github.com/adishshah29-eng/Codeverse_Merge.git /opt/codeverse
 
 cd /opt/codeverse
 sudo -u codeverse python3 -m venv backend/.venv
@@ -204,6 +193,7 @@ sudo mkdir -p /etc/codeverse
 sudo cp /opt/codeverse/backend/.env.example /etc/codeverse/backend.env
 sudo nano /etc/codeverse/backend.env      # fill in every value; set:
 #   ENVIRONMENT=production
+#   DATABASE_PATH=/var/lib/codeverse/codeverse.db
 #   COOKIE_SECURE=true
 #   CODE_SANDBOX=bwrap
 #   GUNICORN_WORKERS=5            (≈ 4 vCPU; see "Capacity")
@@ -236,6 +226,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now codeverse-backend
 sudo systemctl status codeverse-backend
 curl -s http://127.0.0.1:8000/api/health/ready      # {"status":"ready","database":"connected"}
+sudo ls -l /var/lib/codeverse/                       # codeverse.db (owner codeverse, mode 600)
 journalctl -u codeverse-backend -n 50 --no-pager      # look for "bubblewrap isolation active"
 ```
 
@@ -272,13 +263,30 @@ another Cloudflare account may be refused with error 1014; NS delegation of the 
 own Cloudflare account avoids that). Only the tunnel should reach the server — no inbound ports
 need to be open.
 
-### 8. Updating later
+### 8. Database backups
+
+```bash
+sudo install -d -o codeverse -g codeverse -m 700 /var/backups/codeverse
+sudo cp /opt/codeverse/deploy/systemd/codeverse-backup.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now codeverse-backup.timer
+sudo systemctl start codeverse-backup.service && ls -l /var/backups/codeverse   # first backup
+```
+
+A consistent snapshot is taken every 10 minutes while the app runs (the newest 48 are kept).
+Copy them off the server too (e.g. `scp`/`rsync` after the event). To restore:
+stop the backend, replace `/var/lib/codeverse/codeverse.db` with a backup (owner `codeverse`,
+mode 600), delete any `codeverse.db-wal` / `codeverse.db-shm`, start the backend.
+
+### 9. Updating later
 
 ```bash
 cd /opt/codeverse
 sudo -u codeverse ./scripts/deploy.sh
 sudo systemctl restart codeverse-backend
 ```
+
+The database is outside the repository, so updates never touch event data.
 
 ## Operating the event
 
@@ -287,29 +295,40 @@ sudo systemctl restart codeverse-backend
   request id; errors include a stack trace server-side only (clients get a generic 500 + request id).
 * **Opening / closing phases:** organizer → Phase 2 admin → configuration → `active_phases`
   = `1`, `2` or `1,2`. Takes effect within ~5 seconds. Admin pages are never gated.
-* **Teams:** create accounts once in Phase 2 admin → TEAM ACCOUNTS. A team's Phase 1 record is
-  created automatically the first time it opens Phase 1. Deleting a team removes it from both phases.
+* **Teams:** create accounts once in Phase 2 admin → TEAM ACCOUNTS (code, name, email, password).
+  A team's Phase 1 record is created automatically the first time it opens Phase 1. Deleting a team
+  removes it from both phases. To change a team's password, delete and re-create the account
+  before the event starts (deleting removes its progress).
 
 ### Capacity (300–400 concurrent players)
 
-* Suggested server: 4 vCPU / 8 GB RAM, `GUNICORN_WORKERS=5`.
+* Suggested server: 4 vCPU / 8 GB RAM, SSD storage, `GUNICORN_WORKERS=5`.
+* SQLite runs in WAL mode: reads never wait; writes are serialized but each takes milliseconds.
+  Data-changing requests take the write lock at the start of their transaction and queue for up to
+  `SQLITE_BUSY_TIMEOUT_MS` (15 s) — if that is ever exceeded the API returns `503 busy, retry`.
+  Measured on a 4-core test machine (3 workers, load generator on the same machine): 300 teams
+  logging in and then firing ~2,100 mixed game requests at the same instant all succeeded with no
+  lock errors; server-side handling averaged 25–90 ms per request.
+* Logins are deliberately CPU-heavy (scrypt). 300 simultaneous logins take ~10 s in total; in
+  practice logins are spread out.
 * Phase 1 code runs (Alarm System, Printing Press) are CPU-heavy: at most
   `GUNICORN_WORKERS × CODE_EXEC_MAX_CONCURRENT` run at once (default 5 × 2 = 10); extra
   requests wait up to `CODE_EXEC_QUEUE_TIMEOUT` seconds and then get a "busy, try again" message.
-* Database connections ≈ `workers × (DB_POOL_SIZE + DB_MAX_OVERFLOW)` (+ up to 5 per worker for the
-  SQL console). Use the Supabase **pooler** connection string.
-* Set `SUPABASE_JWT_SECRET` (or use the new JWT signing keys) so team sessions are verified
-  locally instead of one Supabase round-trip per request.
+* Keep the database on local disk (not NFS/network storage) — SQLite locking requires it.
+* This edition runs on **one server**. To scale across several servers, use the Supabase edition.
 
 ## Security model
 
-* No secrets in the repository or the frontend bundle; `.env` files are git-ignored.
-* Every table has Row Level Security enabled with no public policies, so the public Supabase
-  keys can read nothing; the backend uses privileged server-side credentials.
-* The Phase 2 Stage 1 SQL console runs as `forensic_reader`, which can only `SELECT` the five
-  forensic tables (it cannot read answers, teams or `auth.users`).
+* No secrets in the repository or the frontend bundle; `.env` files and databases are git-ignored.
+* The database file (`/var/lib/codeverse`, mode 700/600) is readable only by the service user;
+  the secrets file `/etc/codeverse/backend.env` only by root (systemd loads it).
+* Team passwords are stored as salted scrypt hashes; login takes the same time whether or not the
+  email exists. Sessions are signed (HS256, `SECRET_KEY`) httpOnly cookies that expire after 18 h.
+* The Phase 2 Stage 1 SQL console uses a separate read-only connection with an SQLite authorizer
+  that allows `SELECT` on the five forensic tables only — no other tables (answers, teams,
+  password hashes), no `ATTACH`, `PRAGMA` or writes — plus a 5-second time limit.
 * Phase 1 submitted Python runs in a bubblewrap sandbox: no network, no secrets in its environment,
-  no view of the application code, `.env` or answer key, with CPU/memory/file limits.
+  no view of the application code, `.env`, database or answer key, with CPU/memory/file limits.
 * Team identity always comes from the verified session cookie; client-supplied team ids, scores,
   times and answers are never trusted. Wrong answers do not reveal the correct one.
 * Phase 2 submission endpoints keep their per-team cooldown (`submission_cooldown_seconds`).

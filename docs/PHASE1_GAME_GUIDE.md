@@ -81,7 +81,7 @@ The benchmark scores prediction accuracy; its answer key is not included in the 
 - The leaderboard ranks active teams. The final screen shows the campaign score out of 50.
 - Hints and failed attempts can reduce points. The exact scoring rules are administrator-configurable.
 - Skipping a stage permanently marks it skipped and advances the team. A skipped stage cannot be replayed through normal progression; skip points and penalties depend on the current configuration.
-- Team progress is stored in Supabase. Teams sign in with their event account, so progress follows the team to any browser.
+- Team progress is stored on the server. Teams sign in with their event account, so progress follows the team to any browser.
 
 ## Setup, Admin And Deployment
 

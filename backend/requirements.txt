@@ -9,14 +9,12 @@ pydantic-settings==2.8.1
 python-multipart==0.0.20
 python-dotenv==1.1.0
 
-# Database (Phase 2: SQLAlchemy over Postgres; Phase 1: Supabase REST client)
+# Database: SQLite (built into Python) via SQLAlchemy for Phase 2,
+# plain sqlite3 for Phase 1. No database server or driver to install.
 sqlalchemy==2.0.40
-psycopg2-binary==2.9.10
-supabase==2.15.1
 
-# Auth: Supabase session verification (HS256 secret or JWKS) + admin tokens
-PyJWT[crypto]==2.10.1
-httpx==0.28.1
+# Signed session cookies (teams and organizers)
+PyJWT==2.10.1
 
 # Game engines. numpy / pandas / scikit-learn / matplotlib are also the
 # runtime available to team code in Phase 1 (Alarm System, Printing Press).

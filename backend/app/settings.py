@@ -20,21 +20,11 @@ class Settings(BaseSettings):
     enable_docs: bool = False
 
     secret_key: str = ""
-    database_url: str = ""
-    # Restricted read-only role used for the Phase 2 / Stage 1 SQL console.
-    # See supabase/schema.sql (forensic_reader). Required in production.
-    forensic_database_url: str = ""
-    db_pool_size: int = 5
-    db_max_overflow: int = 5
-
-    supabase_url: str = ""
-    supabase_anon_key: str = ""
-    supabase_service_role_key: str = ""
-    # Optional: legacy HS256 JWT secret (Supabase > Project Settings > API).
-    # When set, team sessions are verified locally instead of calling Supabase
-    # on every request. Projects using asymmetric signing keys are verified
-    # via the public JWKS endpoint automatically.
-    supabase_jwt_secret: str = ""
+    # SQLite database file. Production: /var/lib/codeverse/codeverse.db
+    # (systemd StateDirectory). Default for local development: backend/data/.
+    database_path: str = str(BACKEND_DIR / "data" / "codeverse.db")
+    # How long a request waits for the SQLite write lock before giving up.
+    sqlite_busy_timeout_ms: int = 15000
 
     admin_username: str = ""
     admin_password: str = ""
@@ -72,11 +62,11 @@ class Settings(BaseSettings):
         problems = []
         if len(self.secret_key) < 32:
             problems.append("SECRET_KEY must be at least 32 characters")
-        for name in ("database_url", "forensic_database_url", "supabase_url",
-                     "supabase_anon_key", "supabase_service_role_key",
-                     "admin_username", "admin_password"):
+        for name in ("admin_username", "admin_password"):
             if not getattr(self, name):
                 problems.append(f"{name.upper()} is not set")
+        if not Path(self.database_path).is_absolute():
+            problems.append("DATABASE_PATH must be an absolute path")
         if len(self.admin_password) < 12:
             problems.append("ADMIN_PASSWORD must be at least 12 characters")
         if not self.cookie_secure:

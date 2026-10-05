@@ -8,7 +8,7 @@ from app.phase1.core.config import settings
 from app.phase1.core.database import (
     decode_json,
     delete_rows,
-    get_supabase,
+    get_store,
     get_scoring_config,
     log_audit,
     select_rows,
@@ -25,7 +25,7 @@ def admin_list_teams(admin: dict = Depends(current_admin)):
     teams = select_rows("p1_teams")
     teams.sort(key=lambda team: (-float(team["total_score"]), team["updated_at"]))
     progress_rows = select_rows("p1_stage_progress")
-    submission_rows = get_supabase().table("p1_submissions").select("team_id").execute().data or []
+    submission_rows = get_store().table("p1_submissions").select("team_id").execute().data or []
 
     progress_by_team: Dict[str, list] = {}
     submission_counts: Dict[str, int] = {}
@@ -66,7 +66,7 @@ def admin_list_teams(admin: dict = Depends(current_admin)):
 
 @router.post("/teams")
 def admin_add_team(payload: Dict[str, str], admin: dict = Depends(current_admin)):
-    # Team accounts are platform-wide (Supabase Auth) and are created from the
+    # Team accounts are platform-wide (one login for all phases) and are created from the
     # main admin dashboard. A team's Phase 1 record appears on its first visit.
     raise HTTPException(
         status_code=status.HTTP_410_GONE,
@@ -115,7 +115,7 @@ def admin_update_config(payload: Dict[str, Any], admin: dict = Depends(current_a
 
 @router.get("/audit-logs")
 def admin_get_audit_logs(admin: dict = Depends(current_admin)):
-    rows = get_supabase().table("p1_audit_logs").select("*").order("created_at", desc=True).limit(100).execute().data or []
+    rows = get_store().table("p1_audit_logs").select("*").order("created_at", desc=True).limit(100).execute().data or []
     return {"logs": [{
         "id": row["id"],
         "team_id": row["team_id"],

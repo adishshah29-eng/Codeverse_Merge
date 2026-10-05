@@ -228,7 +228,7 @@ export default function AdminDashboard() {
                 <tr key={team.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
                   <td style={{ padding: 8, color: "var(--gold)", fontFamily: "var(--font-mono)" }}>{team.code}</td>
                   <td style={{ padding: 8, color: "#fff" }}>{team.name}</td>
-                  <td style={{ padding: 8, color: "var(--text-muted)" }}>{team.has_login ? "Supabase Auth" : "No linked account"}</td>
+                  <td style={{ padding: 8, color: "var(--text-muted)" }}>{team.has_login ? "Email + password" : "No linked account"}</td>
                   <td style={{ padding: 8, textAlign: "right" }}><button type="button" className="btn btn-ghost" style={{ color: "#f87171", fontSize: "0.75rem" }} onClick={() => handleDeleteTeam(team)}>DELETE</button></td>
                 </tr>
               ))}

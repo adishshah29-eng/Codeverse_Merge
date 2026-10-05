@@ -9,7 +9,7 @@ import os
 bind = os.getenv("GUNICORN_BIND", "127.0.0.1:8000")
 worker_class = "uvicorn.workers.UvicornWorker"
 
-# Mostly I/O bound (Supabase), but Phase 1 code runs use CPU.
+# Mostly short database requests, but Phase 1 code runs use CPU.
 # 2 × cores + 1 (capped at 9) is a sensible start for 300–400 concurrent players.
 workers = int(os.getenv("GUNICORN_WORKERS", min(multiprocessing.cpu_count() * 2 + 1, 9)))
 

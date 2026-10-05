@@ -13,6 +13,11 @@ WorkingDirectory=/opt/codeverse/backend
 # dropping privileges, so the codeverse user cannot read the file itself.
 EnvironmentFile=/etc/codeverse/backend.env
 Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=DATABASE_PATH=/var/lib/codeverse/codeverse.db
+# Creates /var/lib/codeverse (owned by codeverse, mode 700) for the SQLite
+# database; it stays writable even though ProtectSystem=strict.
+StateDirectory=codeverse
+StateDirectoryMode=0700
 ExecStart=/opt/codeverse/backend/.venv/bin/gunicorn -c gunicorn.conf.py app.main:app
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always

@@ -4,9 +4,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-import httpx
 
-from ..auth import COOKIE_NAME, create_token, decode_token, get_supabase_user_id, get_token
+from ..auth import COOKIE_NAME, team_for_token, create_token, decode_token, get_token
+from ..passwords import DUMMY_HASH, verify_password
 from ..db import get_db
 from ..models import AuditEvent, Team, StageProgress
 from ..settings import settings
@@ -26,48 +26,40 @@ class AdminLoginRequest(BaseModel):
 
 @router.post("/login")
 def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    if not settings.supabase_url or not settings.supabase_anon_key:
-        raise HTTPException(status_code=503, detail="Supabase Auth is not configured")
+    email = req.email.strip().lower()
+    team = db.query(Team).filter(Team.email == email).one_or_none()
+    # Always run one hash check so response time does not reveal valid emails.
+    password_ok = verify_password(req.password, team.password_hash if team else DUMMY_HASH)
+    profile = None
+    if team and password_ok:
+        profile = {
+            "id": team.id,
+            "code": team.code,
+            "name": team.name,
+            "current_stage": team.current_stage,
+            "money": team.money,
+            "risk": team.risk,
+        }
+    # End the read transaction before writing. The slow password check above
+    # must never run while this request holds the SQLite write lock.
+    db.rollback()
 
-    try:
-        auth_response = httpx.post(
-            f"{settings.supabase_url.rstrip('/')}/auth/v1/token?grant_type=password",
-            headers={"apikey": settings.supabase_anon_key},
-            json={"email": req.email, "password": req.password},
-            timeout=10.0,
-        )
-    except httpx.HTTPError as exc:
-        raise HTTPException(status_code=503, detail="Supabase Auth is unavailable") from exc
-
-    if auth_response.status_code != 200:
+    if not profile:
         db.add(AuditEvent(
             team_id=None,
             event_type="team_login_failed",
-            payload=json.dumps({"email": req.email[:254]}),
+            payload=json.dumps({"email": email[:254]}),
         ))
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid team credentials")
 
-    auth_data = auth_response.json()
-    token = auth_data.get("access_token")
-    user_id = auth_data.get("user", {}).get("id")
-    if not token or not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Supabase Auth response")
+    db.query(Team).filter(Team.id == profile["id"], Team.event_started_at.is_(None)).update(
+        {Team.event_started_at: datetime.utcnow()}, synchronize_session=False
+    )
+    db.add(AuditEvent(team_id=profile["id"], event_type="team_login_success", payload="{}"))
+    db.commit()
 
-    team = db.query(Team).filter(Team.supabase_user_id == user_id).one_or_none()
-    if not team:
-        db.add(AuditEvent(
-            team_id=None,
-            event_type="team_login_unassigned",
-            payload=json.dumps({"user_id": user_id}),
-        ))
-        db.commit()
-        raise HTTPException(status_code=403, detail="No team is assigned to this account")
-
-    if not team.event_started_at:
-        team.event_started_at = datetime.utcnow()
-        db.commit()
-
+    token = create_token(sub=str(profile["id"]), role="team", extra={"code": profile["code"]})
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -76,20 +68,7 @@ def team_login(req: LoginRequest, response: Response, db: Session = Depends(get_
         samesite="lax",
         max_age=86400,
     )
-    db.add(AuditEvent(team_id=team.id, event_type="team_login_success", payload="{}"))
-    db.commit()
-    return {
-        "success": True,
-        "role": "team",
-        "team": {
-            "id": team.id,
-            "code": team.code,
-            "name": team.name,
-            "current_stage": team.current_stage,
-            "money": team.money,
-            "risk": team.risk,
-        },
-    }
+    return {"success": True, "role": "team", "team": profile}
 
 
 @router.post("/admin-login")
@@ -155,11 +134,9 @@ def get_current_user_profile(
         pass
 
     try:
-        user_id = get_supabase_user_id(token_str)
+        team = team_for_token(token_str, db)
     except HTTPException:
         return {"authenticated": False}
-
-    team = db.query(Team).filter(Team.supabase_user_id == user_id).one_or_none()
     if not team:
         return {"authenticated": False}
 

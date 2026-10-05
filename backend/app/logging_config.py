@@ -22,8 +22,5 @@ def configure_logging() -> None:
         "loggers": {
             # Request lines are logged by our middleware; avoid duplicates.
             "uvicorn.access": {"level": "WARNING"},
-            "httpx": {"level": "WARNING"},
-            "httpcore": {"level": "WARNING"},
-            "hpack": {"level": "WARNING"},
         },
     })

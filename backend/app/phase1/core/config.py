@@ -1,18 +1,11 @@
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Dict, Any, List
 
-from app.settings import BACKEND_DIR, settings as platform_settings
+from app.settings import BACKEND_DIR
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "CODEVERSE 2.0 — Royal Mint Heist Unified Engine"
-
-    # Phase 1 talks to Supabase through the REST API with the service-role key.
-    # Both values come from the shared platform configuration (backend/.env or
-    # the systemd environment) and never reach the browser.
-    SUPABASE_URL: str = Field(default_factory=lambda: platform_settings.supabase_url)
-    SUPABASE_KEY: str = Field(default_factory=lambda: platform_settings.supabase_service_role_key)
 
     # Stage IDs & Names
     TOTAL_STAGES: int = 5
@@ -86,7 +79,7 @@ class Settings(BaseSettings):
     }
 
     # Only PHASE1_-prefixed variables (e.g. PHASE1_SKIP_AWARD_POINTS) override
-    # the defaults above, so shared names like SUPABASE_URL are not re-read here.
+    # the defaults above, so shared platform variables are not re-read here.
     model_config = SettingsConfigDict(env_prefix="PHASE1_", env_file=str(BACKEND_DIR / ".env"), extra="ignore")
 
 settings = Settings()

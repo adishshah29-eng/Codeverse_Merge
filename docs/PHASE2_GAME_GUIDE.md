@@ -19,7 +19,7 @@ A unified, full-stack cybersecurity and optimization competition platform integr
                         └──────┬───────────────────────────────┬───────┘
                                │                               │
                 ┌──────────────┴──────────────┐  ┌─────────────┴─────────────┐
-                │  SINGLE SUPABASE POSTGRES  │  │       GAME ENGINES        │
+                │   SINGLE SQLITE DATABASE   │  │       GAME ENGINES        │
                 │ Teams, Progress, Ledgers,   │  │ 1. Forensics / SQL        │
                 │ Game Outputs, Audit Events  │  │ 2. CTF Sectors (SQLi/DOM) │
                 └─────────────────────────────┘  │ 3. Police Routing (DP)    │

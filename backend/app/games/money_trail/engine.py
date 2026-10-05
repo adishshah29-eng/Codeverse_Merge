@@ -1,11 +1,12 @@
 """Money Trail challenge data and read-only SQL query execution."""
-import logging
+import sqlite3
+import time
 from typing import Any, Dict, List, Tuple
 
 from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
-from ...db import engine, forensic_engine
+from ...db import DATABASE_PATH
 from ...settings import settings
 from ...models import (
     ForensicAccessCard,
@@ -16,8 +17,6 @@ from ...models import (
 )
 
 _DEFAULT_ROGUE_TXN = "TXN-884920"
-
-logger = logging.getLogger(__name__)
 
 
 def init_money_trail_db(db: Session, secret_values: list[str] | None = None) -> None:
@@ -97,44 +96,59 @@ def _seed_forensic_data(db: Session) -> None:
     ))
 
 
+FORENSIC_TABLES = frozenset({"transactions", "employees", "access_cards", "terminal_logs", "security_events"})
+_QUERY_TIMEOUT_SECONDS = 5.0
+_MAX_ROWS = 100
+
+
+def _forensic_authorizer(action, arg1, arg2, _db_name, _trigger):
+    """Allow only reading the forensic tables; deny everything else.
+
+    Teams write their own SQL here, so it must not be able to read answers
+    (config_kv), team data or password hashes, attach other files, or change
+    anything.
+    """
+    if action == sqlite3.SQLITE_SELECT:
+        return sqlite3.SQLITE_OK
+    if action == sqlite3.SQLITE_READ:
+        return sqlite3.SQLITE_OK if arg1 in FORENSIC_TABLES else sqlite3.SQLITE_DENY
+    if action == sqlite3.SQLITE_FUNCTION:
+        return sqlite3.SQLITE_DENY if (arg2 or "").lower() in ("load_extension", "readfile", "writefile") else sqlite3.SQLITE_OK
+    if action == sqlite3.SQLITE_RECURSIVE:
+        return sqlite3.SQLITE_OK
+    return sqlite3.SQLITE_DENY
+
+
 def execute_sql(query: str) -> Tuple[bool, List[str], List[Dict[str, Any]], str]:
-    """Run a bounded SELECT in a PostgreSQL read-only transaction."""
+    """Run a bounded, read-only SELECT restricted to the forensic tables."""
     clean_query = query.strip()
     statement = clean_query.removesuffix(";").strip()
     if ";" in statement or not statement.upper().startswith(("SELECT", "WITH", "EXPLAIN")):
         return False, [], [], "Only read-only forensic queries are allowed."
 
-    # Team-written SQL must run as the restricted forensic_reader role, never as
-    # the main (superuser) connection, which could read answers and auth data.
-    query_engine = forensic_engine
-    if query_engine is None:
-        if settings.is_production:
-            return False, [], [], "Forensic query console is not configured."
-        logger.warning("FORENSIC_DATABASE_URL not set; running forensic SQL on the main connection (development only)")
-        query_engine = engine
-
+    deadline = time.monotonic() + _QUERY_TIMEOUT_SECONDS
+    conn = sqlite3.connect(f"file:{DATABASE_PATH}?mode=ro", uri=True, timeout=5)
     try:
-        with query_engine.connect() as connection:
-            connection.exec_driver_sql("BEGIN TRANSACTION READ ONLY")
-            connection.exec_driver_sql("SET LOCAL statement_timeout = '5000ms'")
-            # Raw DB-API cursor with no parameters, so a literal % (e.g. LIKE '%x%')
-            # is not treated as a placeholder by the driver.
-            cursor = connection.connection.cursor()
-            try:
-                cursor.execute(statement)
-                if cursor.description:
-                    columns = [col[0] for col in cursor.description]
-                    rows = [dict(zip(columns, row)) for row in cursor.fetchmany(100)]
-                else:
-                    columns, rows = [], []
-            finally:
-                cursor.close()
-            connection.rollback()
-            return True, columns, rows, ""
-    except Exception as exc:
-        # Show only the first line of the database error (no internals/stack).
-        lines = str(getattr(exc, "orig", exc)).strip().splitlines()
-        return False, [], [], (lines[0] if lines else "Query failed.")[:300]
+        conn.execute(f"PRAGMA busy_timeout = {int(settings.sqlite_busy_timeout_ms)}")
+        conn.set_authorizer(_forensic_authorizer)
+        # Abort long-running queries (returning non-zero interrupts SQLite).
+        conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10_000)
+        cursor = conn.execute(statement)
+        if cursor.description:
+            columns = [col[0] for col in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchmany(_MAX_ROWS)]
+        else:
+            columns, rows = [], []
+        return True, columns, rows, ""
+    except sqlite3.Error as exc:
+        message = str(exc)
+        if "interrupted" in message:
+            message = f"Query exceeded the {_QUERY_TIMEOUT_SECONDS:.0f}s time limit."
+        elif "not authorized" in message or "prohibited" in message:
+            message = "Access denied: only the forensic tables can be queried."
+        return False, [], [], message[:300]
+    finally:
+        conn.close()
 
 
 def verify_money_trail(

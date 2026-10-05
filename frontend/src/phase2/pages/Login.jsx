@@ -64,7 +64,7 @@ export default function Login({ onLoginSuccess }) {
 
           <form onSubmit={handleSubmit} className="login-form">
             {!isAdminMode ? <>
-              <label htmlFor="crew-email">SUPABASE ACCOUNT EMAIL</label>
+              <label htmlFor="crew-email">TEAM EMAIL</label>
               <input id="crew-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="crew@example.com" autoComplete="username" required />
               <label htmlFor="crew-password">PASSWORD</label>
               <input id="crew-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter crew password" autoComplete="current-password" required />
