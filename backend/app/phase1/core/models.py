@@ -1,23 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 
-class TeamRegisterRequest(BaseModel):
-    name: str = Field(..., min_length=2, max_length=50)
-    passcode: str = Field(..., min_length=3, max_length=50)
-
-class TeamLoginRequest(BaseModel):
-    name: str
-    passcode: str
-
-class AdminLoginRequest(BaseModel):
-    passcode: str
-
 class HintRequest(BaseModel):
-    stage_id: int
-    hint_index: int
+    stage_id: int = Field(..., ge=1, le=5)
+    hint_index: int = Field(..., ge=0, le=10)
 
 class SkipStageRequest(BaseModel):
-    stage_id: int
+    stage_id: int = Field(..., ge=1, le=5)
     confirmation: bool = True
 
 class StageStatusResponse(BaseModel):
@@ -62,32 +51,35 @@ class LeaderboardResponse(BaseModel):
 
 # ── Game Submission Request Models ─────────────────────────────────────────────
 
+IdempotencyKey = Field(..., min_length=1, max_length=128)
+MAX_CODE_CHARS = 100_000
+
 class Game1Submission(BaseModel):
-    idempotency_key: str
-    final_code: str # Expected "615870"
+    idempotency_key: str = IdempotencyKey
+    final_code: str = Field(..., max_length=32)
     extracted_door: Optional[int] = None
     extracted_witness: Optional[int] = None
     extracted_metal: Optional[int] = None
     shift: Optional[int] = None
 
 class Game2Submission(BaseModel):
-    idempotency_key: str
-    challenge_id: str
-    code: str
-    time_spent_seconds: Optional[int] = 0
+    idempotency_key: str = IdempotencyKey
+    challenge_id: str = Field(..., max_length=64)
+    code: str = Field(..., max_length=MAX_CODE_CHARS)
+    time_spent_seconds: Optional[int] = 0  # ignored: elapsed time is computed server-side
 
 class Game3Submission(BaseModel):
-    idempotency_key: str
-    extraction_code: str # Expected "RM-630417"
-    blueprint_fragment: Optional[str] = None # "17-04"
+    idempotency_key: str = IdempotencyKey
+    extraction_code: str = Field(..., max_length=64)
+    blueprint_fragment: Optional[str] = Field(None, max_length=64)
 
 class Game4Submission(BaseModel):
-    idempotency_key: str
-    route: List[int] # e.g. [0, 2, 5, 8, 12, 16, 20]
+    idempotency_key: str = IdempotencyKey
+    route: List[int] = Field(..., max_length=64)
 
 class Game5Submission(BaseModel):
-    idempotency_key: str
-    code: str # Python model code
+    idempotency_key: str = IdempotencyKey
+    code: str = Field(..., max_length=MAX_CODE_CHARS)
 
 class GenericSubmissionResponse(BaseModel):
     success: bool

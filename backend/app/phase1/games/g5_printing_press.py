@@ -1,12 +1,11 @@
-import os
-import sys
 import json
-import tempfile
-import subprocess
+import secrets
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+from app.phase1.games.sandbox import run_python
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -50,6 +49,13 @@ def evaluate_ml_model(code: str, timeout_seconds: int = 15) -> Dict[str, Any]:
     answer_key = get_answer_key()
     expected_count = len(answer_key) or 1500
     
+    # Per-run markers so ordinary output from team code is never mistaken for
+    # the wrapper's result lines. Grading itself happens server-side against
+    # the answer key, which is never copied into the sandbox.
+    nonce = secrets.token_hex(16)
+    img_marker = f"__IMG_{nonce}__:"
+    val_marker = f"__VAL_{nonce}__:"
+
     # Python wrapper to run user model, capture predictions and any plot
     wrapper = f"""
 import sys
@@ -66,10 +72,9 @@ except Exception:
 import pandas as pd
 import numpy as np
 
-# Prepare current directory data references
-data_dir = r"{str(DATA_DIR)}"
-train_csv = os.path.join(data_dir, "train.csv")
-test_csv = os.path.join(data_dir, "test.csv")
+# train.csv and test.csv are copied into the sandbox working directory
+train_csv = "train.csv"
+test_csv = "test.csv"
 
 # Make train_df and test_df available globally
 try:
@@ -135,103 +140,17 @@ if not runtime_err and "predictions" in globals():
             pass
 
 if img_b64:
-    print("\\n__IMG__:" + img_b64)
-print("\\n__VAL__:" + json.dumps(val_payload))
+    print("\\n{img_marker}" + img_b64)
+print("\\n{val_marker}" + json.dumps(val_payload))
 """
 
-    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as tmp:
-        tmp.write(wrapper)
-        tmp_name = tmp.name
-
-    try:
-        proc = subprocess.run(
-            [sys.executable, tmp_name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout_seconds,
-            cwd=str(DATA_DIR)
-        )
-        
-        stdout_raw = proc.stdout
-        stderr_raw = proc.stderr
-        
-        img_b64 = None
-        val_payload = {}
-        clean_stdout = []
-        
-        for line in stdout_raw.splitlines():
-            if line.startswith("__IMG__:"):
-                img_b64 = line[8:].strip()
-            elif line.startswith("__VAL__:"):
-                try:
-                    val_payload = json.loads(line[8:].strip())
-                except Exception:
-                    pass
-            else:
-                clean_stdout.append(line)
-                
-        stdout_clean = "\n".join(clean_stdout).strip()
-        
-        # Validation checks
-        if proc.returncode != 0 or val_payload.get("has_error"):
-            return {
-                "passed": False,
-                "error_pct": 100.0,
-                "message": "Execution Error: Script raised an unhandled exception.",
-                "stdout": stdout_clean,
-                "stderr": stderr_raw,
-                "image": img_b64
-            }
-            
-        if not val_payload.get("has_predictions"):
-            return {
-                "passed": False,
-                "error_pct": 100.0,
-                "message": "Variable 'predictions' was not assigned by your model.",
-                "stdout": stdout_clean,
-                "stderr": stderr_raw,
-                "image": img_b64
-            }
-            
-        if val_payload.get("has_nan") or val_payload.get("has_inf"):
-            return {
-                "passed": False,
-                "error_pct": 100.0,
-                "message": "Predictions contain invalid NaN or Infinite values.",
-                "stdout": stdout_clean,
-                "stderr": stderr_raw,
-                "image": img_b64
-            }
-            
-        preds = val_payload.get("predictions")
-        if not preds or len(preds) != expected_count:
-            return {
-                "passed": False,
-                "error_pct": 100.0,
-                "message": f"Expected exactly {expected_count} predictions for test.csv, but got {val_payload.get('count', 0)}.",
-                "stdout": stdout_clean,
-                "stderr": stderr_raw,
-                "image": img_b64
-            }
-            
-        # Grade against server-side answer key
-        sum_actual = sum(answer_key)
-        sum_abs_err = sum(abs(p - a) for p, a in zip(preds, answer_key))
-        error_pct = (sum_abs_err / sum_actual) * 100.0 if sum_actual > 0 else 0.0
-        
-        passed = (error_pct <= 50.0) # Within valid benchmark range
-        
-        return {
-            "passed": passed,
-            "error_pct": round(error_pct, 2),
-            "message": f"BENCHMARK COMPLETE: Achieved {error_pct:.2f}% overall test error.",
-            "stdout": stdout_clean,
-            "stderr": stderr_raw,
-            "image": img_b64
-        }
-        
-    except subprocess.TimeoutExpired:
+    # Only the public datasets are copied in; answer_key.csv never enters the sandbox.
+    run = run_python(
+        wrapper,
+        timeout_seconds,
+        data_files=[DATA_DIR / "train.csv", DATA_DIR / "test.csv"],
+    )
+    if run.timed_out:
         return {
             "passed": False,
             "error_pct": 100.0,
@@ -240,8 +159,90 @@ print("\\n__VAL__:" + json.dumps(val_payload))
             "stderr": "Execution timeout.",
             "image": None
         }
-    finally:
-        try:
-            os.remove(tmp_name)
-        except Exception:
-            pass
+    if run.busy:
+        return {
+            "passed": False,
+            "error_pct": 100.0,
+            "message": run.stderr,
+            "stdout": "",
+            "stderr": run.stderr,
+            "image": None
+        }
+
+    stdout_raw = run.stdout
+    stderr_raw = run.stderr
+    
+    img_b64 = None
+    val_payload = {}
+    clean_stdout = []
+    
+    for line in stdout_raw.splitlines():
+        if line.startswith(img_marker):
+            img_b64 = line[len(img_marker):].strip()
+        elif line.startswith(val_marker):
+            try:
+                val_payload = json.loads(line[len(val_marker):].strip())
+            except Exception:
+                pass
+        else:
+            clean_stdout.append(line)
+            
+    stdout_clean = "\n".join(clean_stdout).strip()
+    
+    # Validation checks
+    if run.returncode != 0 or val_payload.get("has_error"):
+        return {
+            "passed": False,
+            "error_pct": 100.0,
+            "message": "Execution Error: Script raised an unhandled exception.",
+            "stdout": stdout_clean,
+            "stderr": stderr_raw,
+            "image": img_b64
+        }
+        
+    if not val_payload.get("has_predictions"):
+        return {
+            "passed": False,
+            "error_pct": 100.0,
+            "message": "Variable 'predictions' was not assigned by your model.",
+            "stdout": stdout_clean,
+            "stderr": stderr_raw,
+            "image": img_b64
+        }
+        
+    if val_payload.get("has_nan") or val_payload.get("has_inf"):
+        return {
+            "passed": False,
+            "error_pct": 100.0,
+            "message": "Predictions contain invalid NaN or Infinite values.",
+            "stdout": stdout_clean,
+            "stderr": stderr_raw,
+            "image": img_b64
+        }
+        
+    preds = val_payload.get("predictions")
+    if not preds or len(preds) != expected_count:
+        return {
+            "passed": False,
+            "error_pct": 100.0,
+            "message": f"Expected exactly {expected_count} predictions for test.csv, but got {val_payload.get('count', 0)}.",
+            "stdout": stdout_clean,
+            "stderr": stderr_raw,
+            "image": img_b64
+        }
+        
+    # Grade against server-side answer key
+    sum_actual = sum(answer_key)
+    sum_abs_err = sum(abs(p - a) for p, a in zip(preds, answer_key))
+    error_pct = (sum_abs_err / sum_actual) * 100.0 if sum_actual > 0 else 0.0
+    
+    passed = (error_pct <= 50.0) # Within valid benchmark range
+    
+    return {
+        "passed": passed,
+        "error_pct": round(error_pct, 2),
+        "message": f"BENCHMARK COMPLETE: Achieved {error_pct:.2f}% overall test error.",
+        "stdout": stdout_clean,
+        "stderr": stderr_raw,
+        "image": img_b64
+    }

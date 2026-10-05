@@ -1,19 +1,19 @@
-import os
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Dict, Any, List
+
+from app.settings import BACKEND_DIR, settings as platform_settings
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "CODEVERSE 2.0 — Royal Mint Heist Unified Engine"
-    API_V1_STR: str = "/api"
-    ADMIN_PASSCODE: str = os.getenv("ADMIN_PASSCODE", "PROFESSOR_2026")
-    
-    # Supabase service credentials are required and must remain server-side.
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
-    
-    # Secret Tokens
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-royal-mint-professor-token-2026")
-    
+
+    # Phase 1 talks to Supabase through the REST API with the service-role key.
+    # Both values come from the shared platform configuration (backend/.env or
+    # the systemd environment) and never reach the browser.
+    SUPABASE_URL: str = Field(default_factory=lambda: platform_settings.supabase_url)
+    SUPABASE_KEY: str = Field(default_factory=lambda: platform_settings.supabase_service_role_key)
+
     # Stage IDs & Names
     TOTAL_STAGES: int = 5
     STAGE_NAMES: Dict[int, str] = {
@@ -85,8 +85,8 @@ class Settings(BaseSettings):
         }
     }
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    # Only PHASE1_-prefixed variables (e.g. PHASE1_SKIP_AWARD_POINTS) override
+    # the defaults above, so shared names like SUPABASE_URL are not re-read here.
+    model_config = SettingsConfigDict(env_prefix="PHASE1_", env_file=str(BACKEND_DIR / ".env"), extra="ignore")
 
 settings = Settings()

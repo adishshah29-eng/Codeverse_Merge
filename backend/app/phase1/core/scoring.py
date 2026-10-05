@@ -1,6 +1,6 @@
 import math
 from typing import Dict, Any, List
-from core.database import get_scoring_config
+from app.phase1.core.database import get_scoring_config
 
 def clamp_score(score: float, max_score: float = 10.0) -> float:
     """Strictly ensures no game score ever exceeds max_score (default 10.0) or drops below 0.0."""

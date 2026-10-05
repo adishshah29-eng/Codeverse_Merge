@@ -1,8 +1,6 @@
-import subprocess
-import sys
-import tempfile
-import os
 from typing import Dict, Any, List, Optional
+
+from app.phase1.games.sandbox import run_python
 
 # The 10 disarm subroutines with their buggy starter code & expected output
 CHALLENGES = [
@@ -142,36 +140,20 @@ def get_challenge_by_id(cid: str) -> Optional[Dict[str, Any]]:
     return None
 
 def execute_python_code(code: str, timeout_seconds: int = 5) -> Dict[str, Any]:
-    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as tmp:
-        tmp.write(code)
-        tmp_name = tmp.name
-
-    try:
-        proc = subprocess.run(
-            [sys.executable, tmp_name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout_seconds
-        )
-        return {
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "exitCode": proc.returncode,
-            "timeout": False
-        }
-    except subprocess.TimeoutExpired:
+    result = run_python(code, timeout_seconds)
+    if result.timed_out:
         return {
             "stdout": "",
             "stderr": f"Execution timed out ({timeout_seconds}s limit).",
             "exitCode": -1,
             "timeout": True
         }
-    finally:
-        try:
-            os.remove(tmp_name)
-        except Exception:
-            pass
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "exitCode": result.returncode,
+        "timeout": False
+    }
 
 def verify_alarm_solution(challenge_id: str, code: str) -> Dict[str, Any]:
     ch = get_challenge_by_id(challenge_id)

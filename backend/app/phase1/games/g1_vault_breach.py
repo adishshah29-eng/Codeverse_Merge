@@ -35,12 +35,9 @@ def verify_vault_solution(
     correct_code = "615870"
     is_correct = (final_code.strip() == correct_code)
     
-    details = {
-        "code_matched": is_correct,
-        "correct_code": correct_code,
-        "expected_shift": 3,
-        "expected_values": {"door": 38, "witness": 25, "metal": 47}
-    }
+    # Never echo the solution back to the client (it was previously returned
+    # on wrong submissions, letting teams read the PIN from the response).
+    details = {"code_matched": is_correct}
     
     if is_correct:
         message = "ACCESS GRANTED: Vault door locking mechanism neutralized! Safe open."

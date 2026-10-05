@@ -1,6 +1,8 @@
+import hmac
+import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 import httpx
 
@@ -13,13 +15,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=128)
 
 
 class AdminLoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(max_length=128)
+    password: str = Field(max_length=256)
 
 
 @router.post("/login")
@@ -95,7 +97,9 @@ def admin_login(req: AdminLoginRequest, response: Response, db: Session = Depend
     if not settings.admin_username or not settings.admin_password:
         raise HTTPException(status_code=503, detail="Admin credentials are not configured")
 
-    if req.username != settings.admin_username or req.password != settings.admin_password:
+    username_ok = hmac.compare_digest(req.username.encode(), settings.admin_username.encode())
+    password_ok = hmac.compare_digest(req.password.encode(), settings.admin_password.encode())
+    if not (username_ok and password_ok):
         # Log failed admin login attempt
         db.add(AuditEvent(
             team_id=None,
@@ -119,7 +123,7 @@ def admin_login(req: AdminLoginRequest, response: Response, db: Session = Depend
     db.add(AuditEvent(
         team_id=None,
         event_type="admin_login_success",
-        payload=f'{{"username": "{req.username}"}}',
+        payload=json.dumps({"username": req.username[:64]}),
     ))
     db.commit()
 

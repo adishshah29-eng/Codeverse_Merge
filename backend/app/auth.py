@@ -1,4 +1,6 @@
+import hashlib
 import json
+import time
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -70,9 +72,71 @@ def current_team(
     return team
 
 
+_user_cache: dict[str, tuple[str, float]] = {}
+_USER_CACHE_TTL = 60.0
+_USER_CACHE_MAX = 5000
+_jwks_client = None
+
+
+def _jwks():
+    global _jwks_client
+    if _jwks_client is None:
+        _jwks_client = jwt.PyJWKClient(
+            f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json",
+            cache_keys=True,
+            lifespan=3600,
+        )
+    return _jwks_client
+
+
+def _verify_supabase_jwt_locally(token: str) -> str | None:
+    """Verify a Supabase access token without a network round trip.
+
+    Returns the user id, or None when local verification is not possible
+    (no secret / unknown algorithm), in which case the caller falls back to
+    asking Supabase directly.
+    """
+    try:
+        alg = jwt.get_unverified_header(token).get("alg", "")
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status_code=401, detail="Invalid Supabase session") from exc
+
+    try:
+        if alg == "HS256":
+            if not settings.supabase_jwt_secret:
+                return None
+            claims = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"], audience="authenticated")
+        elif alg in ("ES256", "RS256"):
+            signing_key = _jwks().get_signing_key_from_jwt(token)
+            claims = jwt.decode(token, signing_key.key, algorithms=[alg], audience="authenticated")
+        else:
+            return None
+    except jwt.ExpiredSignatureError as exc:
+        raise HTTPException(status_code=401, detail="Invalid or expired Supabase session") from exc
+    except jwt.PyJWKClientError:
+        return None
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status_code=401, detail="Invalid or expired Supabase session") from exc
+
+    user_id = claims.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid Supabase session")
+    return user_id
+
+
 def get_supabase_user_id(token: str) -> str:
     if not settings.supabase_url or not settings.supabase_anon_key:
         raise HTTPException(status_code=503, detail="Supabase Auth is not configured")
+
+    user_id = _verify_supabase_jwt_locally(token)
+    if user_id:
+        return user_id
+
+    cache_key = hashlib.sha256(token.encode()).hexdigest()
+    cached = _user_cache.get(cache_key)
+    now = time.monotonic()
+    if cached and cached[1] > now:
+        return cached[0]
 
     try:
         response = httpx.get(
@@ -92,6 +156,10 @@ def get_supabase_user_id(token: str) -> str:
     user_id = response.json().get("id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid Supabase session")
+
+    if len(_user_cache) >= _USER_CACHE_MAX:
+        _user_cache.clear()
+    _user_cache[cache_key] = (user_id, now + _USER_CACHE_TTL)
     return user_id
 
 

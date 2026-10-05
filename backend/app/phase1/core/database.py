@@ -6,13 +6,16 @@ All data is stored in Supabase PostgreSQL (JSONB columns, UUID primary keys).
 The SQLite heist_unified.db is no longer used.
 """
 
-import uuid
 import json
+import logging
+import uuid
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
 from supabase import create_client, Client
-from core.config import settings
+from app.phase1.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # ── Supabase Client Singleton ─────────────────────────────────────────────────
 
@@ -73,27 +76,23 @@ def decode_json(value: Any, default: Any) -> Any:
 
 # ── Startup Bootstrap ─────────────────────────────────────────────────────────
 
-def _seed_default_scoring_config():
+def seed_default_scoring_config():
     """
     Inserts default scoring config into dynamic_config if the 'scoring' key
     does not already exist. Safe to call on every startup.
     """
     try:
         sb = get_supabase()
-        result = sb.table("dynamic_config").select("key").eq("key", "scoring").execute()
+        result = sb.table("p1_dynamic_config").select("key").eq("key", "scoring").execute()
         if not result.data:
-            sb.table("dynamic_config").insert({
+            sb.table("p1_dynamic_config").insert({
                 "key": "scoring",
                 "value": settings.SCORING_CONFIG,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }).execute()
     except Exception as exc:
         # Non-fatal: config falls back to settings.SCORING_CONFIG
-        print(f"[WARNING] Could not seed scoring config in Supabase: {exc}")
-
-
-# Auto-seed on module import (happens once at server startup)
-_seed_default_scoring_config()
+        logger.warning("Could not seed Phase 1 scoring config in Supabase: %s", exc)
 
 
 # ── Scoring Config Helpers ────────────────────────────────────────────────────
@@ -105,13 +104,13 @@ def get_scoring_config() -> Dict[str, Any]:
     """
     try:
         sb = get_supabase()
-        result = sb.table("dynamic_config").select("value").eq("key", "scoring").execute()
+        result = sb.table("p1_dynamic_config").select("value").eq("key", "scoring").execute()
         if result.data:
             val = result.data[0]["value"]
             # Supabase JSONB columns are returned as Python dicts already
             return val if isinstance(val, dict) else json.loads(val)
     except Exception as exc:
-        print(f"[WARNING] Could not read scoring config from Supabase: {exc}")
+        logger.warning("Could not read Phase 1 scoring config from Supabase: %s", exc)
     return settings.SCORING_CONFIG
 
 
@@ -120,7 +119,7 @@ def update_scoring_config(new_config: Dict[str, Any]) -> Dict[str, Any]:
     Upserts scoring config into dynamic_config. Returns the saved config.
     """
     sb = get_supabase()
-    sb.table("dynamic_config").upsert({
+    sb.table("p1_dynamic_config").upsert({
         "key": "scoring",
         "value": new_config,
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -137,7 +136,7 @@ def log_audit(action: str, details: Dict[str, Any], team_id: Optional[str] = Non
     """
     try:
         sb = get_supabase()
-        sb.table("audit_logs").insert({
+        sb.table("p1_audit_logs").insert({
             "id": str(uuid.uuid4()),
             "team_id": team_id,
             "action": action,
@@ -145,4 +144,4 @@ def log_audit(action: str, details: Dict[str, Any], team_id: Optional[str] = Non
             "created_at": datetime.now(timezone.utc).isoformat()
         }).execute()
     except Exception as exc:
-        print(f"[WARNING] Audit log failed ({action}): {exc}")
+        logger.warning("Phase 1 audit log failed (%s): %s", action, exc)

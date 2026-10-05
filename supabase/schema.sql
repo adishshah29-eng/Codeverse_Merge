@@ -1,6 +1,16 @@
 -- ============================================================================
--- CODEVERSE 2.0: HEIST GAME - SUPABASE POSTGRESQL SCHEMA
+-- CODEVERSE 2.0 — UNIFIED SUPABASE POSTGRESQL SCHEMA (Phase 1 + Phase 2)
+--
+-- Run this whole file once in the Supabase SQL Editor. It is idempotent
+-- (safe to re-run). Sections:
+--   A. Shared + Phase 2 tables   (teams, stage_progress, config_kv, ...)
+--   B. Phase 1 tables            (p1_teams, p1_stage_progress, ...)
+--   C. Security                  (RLS on every table, forensic read-only role)
 -- ============================================================================
+
+-- ── A. SHARED + PHASE 2 ─────────────────────────────────────────────────────
+-- `teams` is the single team identity for the whole platform: one row per
+-- Supabase Auth account, created from the admin panel (TEAM ACCOUNTS).
 
 CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,
@@ -193,3 +203,136 @@ CREATE INDEX IF NOT EXISTS idx_audit_events_team ON audit_events(team_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_team ON submissions(team_id);
 CREATE INDEX IF NOT EXISTS idx_penalties_team ON penalties(team_id);
 CREATE INDEX IF NOT EXISTS idx_market_purchases_team ON market_purchases(team_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_team_type ON audit_events(team_id, event_type, id DESC);
+
+-- ── B. PHASE 1 (Royal Mint Heist) ───────────────────────────────────────────
+-- Prefixed with p1_ so they do not collide with the Phase 2 tables above.
+-- Each p1_teams row is linked 1:1 to a shared `teams` row (core_team_id) and
+-- is created automatically the first time that team opens Phase 1.
+
+CREATE TABLE IF NOT EXISTS p1_teams (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    core_team_id  INTEGER     UNIQUE REFERENCES teams(id) ON DELETE CASCADE,
+    name          TEXT        NOT NULL,
+    passcode      TEXT,                       -- legacy (pre-unification); unused
+    is_active     BOOLEAN     NOT NULL DEFAULT TRUE,
+    current_stage INTEGER     NOT NULL DEFAULT 1,
+    total_score   FLOAT       NOT NULL DEFAULT 0.0,
+    total_penalty FLOAT       NOT NULL DEFAULT 0.0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS p1_stage_progress (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id         UUID        NOT NULL REFERENCES p1_teams(id) ON DELETE CASCADE,
+    stage_id        INTEGER     NOT NULL,
+    status          TEXT        NOT NULL DEFAULT 'LOCKED',  -- LOCKED | ACTIVE | COMPLETED | SKIPPED
+    score           FLOAT       NOT NULL DEFAULT 0.0,
+    started_at      TIMESTAMPTZ,
+    completed_at    TIMESTAMPTZ,
+    attempts_count  INTEGER     NOT NULL DEFAULT 0,
+    wrong_attempts  INTEGER     NOT NULL DEFAULT 0,
+    hints_used      JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    penalty_points  FLOAT       NOT NULL DEFAULT 0.0,
+    metadata        JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    UNIQUE(team_id, stage_id)
+);
+
+CREATE TABLE IF NOT EXISTS p1_submissions (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id         UUID        NOT NULL REFERENCES p1_teams(id) ON DELETE CASCADE,
+    stage_id        INTEGER     NOT NULL,
+    idempotency_key TEXT        NOT NULL,
+    payload         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    passed          BOOLEAN     NOT NULL,
+    score_awarded   FLOAT       NOT NULL,
+    feedback        TEXT        NOT NULL DEFAULT '',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(team_id, stage_id, idempotency_key)
+);
+
+CREATE TABLE IF NOT EXISTS p1_audit_logs (
+    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    team_id     UUID,
+    action      TEXT        NOT NULL,
+    details     JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS p1_dynamic_config (
+    key         TEXT        PRIMARY KEY,
+    value       JSONB       NOT NULL,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_p1_stage_progress_team_id    ON p1_stage_progress(team_id);
+CREATE INDEX IF NOT EXISTS idx_p1_stage_progress_team_stage ON p1_stage_progress(team_id, stage_id);
+CREATE INDEX IF NOT EXISTS idx_p1_submissions_team_stage    ON p1_submissions(team_id, stage_id);
+CREATE INDEX IF NOT EXISTS idx_p1_submissions_idempotency   ON p1_submissions(team_id, stage_id, idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_p1_audit_logs_team_id        ON p1_audit_logs(team_id);
+CREATE INDEX IF NOT EXISTS idx_p1_audit_logs_created_at     ON p1_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_p1_teams_total_score         ON p1_teams(total_score DESC);
+
+CREATE OR REPLACE FUNCTION p1_increment_stage_attempt(
+    p_team_id UUID,
+    p_stage_id INTEGER,
+    p_passed BOOLEAN
+)
+RETURNS VOID
+LANGUAGE SQL
+SET search_path = public
+AS $$
+    UPDATE p1_stage_progress
+    SET attempts_count = attempts_count + 1,
+        wrong_attempts = wrong_attempts + CASE WHEN p_passed THEN 0 ELSE 1 END
+    WHERE team_id = p_team_id AND stage_id = p_stage_id;
+$$;
+
+REVOKE ALL ON FUNCTION p1_increment_stage_attempt(UUID, INTEGER, BOOLEAN) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION p1_increment_stage_attempt(UUID, INTEGER, BOOLEAN) TO service_role;
+
+-- ── C. SECURITY ─────────────────────────────────────────────────────────────
+-- The backend talks to the database as `postgres` (DATABASE_URL) or
+-- `service_role` (Supabase REST), both of which bypass RLS. Enabling RLS with
+-- no policies means the public anon/authenticated keys can read nothing
+-- through the Supabase REST API (answers in config_kv, team data, ...).
+DO $$
+DECLARE t TEXT;
+BEGIN
+    FOREACH t IN ARRAY ARRAY[
+        'teams','stage_progress','game_outputs','config_kv','audit_events',
+        'submissions','hint_catalog','hint_uses','penalties','market_purchases',
+        'ctf_state','police_clock','team_compromises','event_clock',
+        'transactions','employees','access_cards','terminal_logs','security_events',
+        'p1_teams','p1_stage_progress','p1_submissions','p1_audit_logs','p1_dynamic_config'
+    ] LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    END LOOP;
+END $$;
+
+-- Phase 2 / Stage 1 lets teams run their own SELECT queries. Those queries must
+-- NOT run as `postgres` (which could read config_kv answers or auth.users).
+-- This role can only read the five forensic tables. The backend connects with
+-- it through FORENSIC_DATABASE_URL. After running this file, give it a login
+-- password ONCE (pick your own strong value):
+--     ALTER ROLE forensic_reader WITH LOGIN PASSWORD '<strong-password>';
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'forensic_reader') THEN
+        CREATE ROLE forensic_reader NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+    END IF;
+END $$;
+ALTER ROLE forensic_reader SET statement_timeout = '5s';
+GRANT USAGE ON SCHEMA public TO forensic_reader;
+GRANT SELECT ON transactions, employees, access_cards, terminal_logs, security_events TO forensic_reader;
+DROP POLICY IF EXISTS forensic_read ON transactions;
+DROP POLICY IF EXISTS forensic_read ON employees;
+DROP POLICY IF EXISTS forensic_read ON access_cards;
+DROP POLICY IF EXISTS forensic_read ON terminal_logs;
+DROP POLICY IF EXISTS forensic_read ON security_events;
+CREATE POLICY forensic_read ON transactions    FOR SELECT TO forensic_reader USING (true);
+CREATE POLICY forensic_read ON employees       FOR SELECT TO forensic_reader USING (true);
+CREATE POLICY forensic_read ON access_cards    FOR SELECT TO forensic_reader USING (true);
+CREATE POLICY forensic_read ON terminal_logs   FOR SELECT TO forensic_reader USING (true);
+CREATE POLICY forensic_read ON security_events FOR SELECT TO forensic_reader USING (true);

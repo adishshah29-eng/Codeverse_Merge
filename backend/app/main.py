@@ -1,17 +1,52 @@
+import logging
+import time
+import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-from .db import Base, engine, SessionLocal
-from .games.money_trail.engine import init_money_trail_db
-from .models import ConfigKV, HintCatalog, PoliceClock, StageProgress, Team
-from .routers import admin, auth, ctf, extraction, hints, market, money_trail, police, stages
+from fastapi import Depends, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from .logging_config import configure_logging
 from .settings import ROOT, settings
+
+configure_logging()
+
+from .db import Base, engine, SessionLocal  # noqa: E402
+from .games.money_trail.engine import init_money_trail_db  # noqa: E402
+from .models import ConfigKV, HintCatalog, PoliceClock, StageProgress, Team  # noqa: E402
+from .phases import ACTIVE_PHASES_KEY, DEFAULT_ACTIVE_PHASES, active_phases, require_phase  # noqa: E402
+from .routers import admin, auth, ctf, extraction, hints, market, money_trail, police, stages  # noqa: E402
+from .phase1.core.database import seed_default_scoring_config  # noqa: E402
+from .phase1.games.sandbox import log_sandbox_status  # noqa: E402
+from .phase1.routers import admin as p1_admin  # noqa: E402
+from .phase1.routers import games as p1_games  # noqa: E402
+from .phase1.routers import leaderboard as p1_leaderboard  # noqa: E402
+from .phase1.routers import progression as p1_progression  # noqa: E402
+
+logger = logging.getLogger("codeverse")
+
+# Arbitrary constant: serializes startup seeding across Gunicorn workers.
+_SEED_LOCK_ID = 727_2026
 
 
 def seed_database():
     """Initializes tables and seeds initial teams, hint catalog, clocks, and config if not already present."""
+    with engine.connect() as lock_conn:
+        # Every Gunicorn worker runs startup; only one may seed at a time.
+        lock_conn.execute(text("SELECT pg_advisory_lock(:id)"), {"id": _SEED_LOCK_ID})
+        try:
+            _seed_database()
+        finally:
+            lock_conn.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": _SEED_LOCK_ID})
+            lock_conn.commit()
+
+
+def _seed_database():
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
@@ -86,6 +121,8 @@ def seed_database():
         # These keys drive ALL game logic — never hardcoded in routers.
         # Admins can change any of these via PUT /api/admin/config/{key}
         config_defaults = {
+            # Which competition phases teams can currently play ("1", "2" or "1,2")
+            ACTIVE_PHASES_KEY: DEFAULT_ACTIVE_PHASES,
             # Stage skip
             "stage_skip_penalty": "3.0",
             # Stage 1 — Money Trail
@@ -151,7 +188,16 @@ def seed_database():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.is_production:
+        problems = settings.production_problems()
+        if problems:
+            for problem in problems:
+                logger.critical("Configuration error: %s", problem)
+            raise RuntimeError("Refusing to start in production with invalid configuration: " + "; ".join(problems))
     seed_database()
+    seed_default_scoring_config()
+    log_sandbox_status()
+    logger.info("CODEVERSE backend started (environment=%s)", settings.environment)
     yield
 
 
@@ -160,29 +206,76 @@ app = FastAPI(
     description="Unified CODEVERSE 2.0 Heist Game Central Platform",
     version="2.0.0",
     lifespan=lifespan,
+    docs_url="/api/docs" if settings.enable_docs else None,
+    redoc_url=None,
+    openapi_url="/api/openapi.json" if settings.enable_docs else None,
 )
 
-# CORS setup
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()] or ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS is only needed when the frontend is served from a different origin.
+# With the standard Nginx setup (same origin) CORS_ORIGINS stays empty.
+if settings.cors_origin_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+    )
 
-# Mount API Routers
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    request_id = request.headers.get("x-request-id", "")[:64] or uuid.uuid4().hex[:16]
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception("Unhandled error id=%s %s %s", request_id, request.method, request.url.path)
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error", "request_id": request_id},
+        )
+    duration_ms = (time.perf_counter() - started) * 1000
+    response.headers["X-Request-ID"] = request_id
+    if request.url.path.startswith("/api/"):
+        level = logging.WARNING if response.status_code >= 500 else logging.INFO
+        logger.log(level, "%s %s %s %.0fms id=%s", request.method, request.url.path,
+                   response.status_code, duration_ms, request_id)
+    return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = [
+        {"field": ".".join(str(part) for part in err.get("loc", ())[1:]), "message": err.get("msg", "")}
+        for err in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": "Invalid request", "errors": errors})
+
+
+# ── Shared: platform login (team + admin), used by every frontend ────────────
 app.include_router(auth.router)
-app.include_router(stages.router)
-app.include_router(hints.router)
-app.include_router(money_trail.router)
-app.include_router(ctf.router)
-app.include_router(police.router)
-app.include_router(extraction.router)
-app.include_router(market.router)
 app.include_router(admin.router)
 
-# Mount vendor static assets if present
+# ── Phase 2 (Unified Heist) — served at /api/* as before ────────────────────
+phase2 = [Depends(require_phase(2))]
+for router in (stages.router, hints.router, money_trail.router, ctf.router,
+               police.router, extraction.router, market.router):
+    app.include_router(router, dependencies=phase2)
+
+# ── Phase 1 (Royal Mint Heist) — served at /api/phase1/* ─────────────────────
+phase1 = [Depends(require_phase(1))]
+app.include_router(p1_progression.router, prefix="/api/phase1", dependencies=phase1)
+app.include_router(p1_games.router, prefix="/api/phase1", dependencies=phase1)
+app.include_router(p1_leaderboard.router, prefix="/api/phase1")
+app.include_router(p1_admin.router, prefix="/api/phase1")
+
+# In production Nginx serves /vendor directly; this mount is for local development.
 vendor_path = ROOT / "vendor"
 if vendor_path.exists():
     app.mount("/vendor", StaticFiles(directory=str(vendor_path)), name="vendor")
@@ -190,8 +283,23 @@ if vendor_path.exists():
 
 @app.get("/api/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "app": settings.app_name,
-        "database": "connected",
-    }
+    """Liveness: the process is up. Does not touch the database."""
+    return {"status": "healthy", "app": settings.app_name}
+
+
+@app.get("/api/health/ready")
+def readiness_check():
+    """Readiness: the database is reachable."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Readiness check failed")
+        return JSONResponse(status_code=503, content={"status": "unavailable", "database": "unreachable"})
+    return {"status": "ready", "database": "connected"}
+
+
+@app.get("/api/phases")
+def list_phases():
+    """Which competition phases are currently open (used by the landing page)."""
+    return {"active_phases": sorted(active_phases())}

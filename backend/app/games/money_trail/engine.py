@@ -1,10 +1,12 @@
 """Money Trail challenge data and read-only SQL query execution."""
+import logging
 from typing import Any, Dict, List, Tuple
 
 from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
-from ...db import engine
+from ...db import engine, forensic_engine
+from ...settings import settings
 from ...models import (
     ForensicAccessCard,
     ForensicEmployee,
@@ -14,6 +16,8 @@ from ...models import (
 )
 
 _DEFAULT_ROGUE_TXN = "TXN-884920"
+
+logger = logging.getLogger(__name__)
 
 
 def init_money_trail_db(db: Session, secret_values: list[str] | None = None) -> None:
@@ -100,8 +104,17 @@ def execute_sql(query: str) -> Tuple[bool, List[str], List[Dict[str, Any]], str]
     if ";" in statement or not statement.upper().startswith(("SELECT", "WITH", "EXPLAIN")):
         return False, [], [], "Only read-only forensic queries are allowed."
 
+    # Team-written SQL must run as the restricted forensic_reader role, never as
+    # the main (superuser) connection, which could read answers and auth data.
+    query_engine = forensic_engine
+    if query_engine is None:
+        if settings.is_production:
+            return False, [], [], "Forensic query console is not configured."
+        logger.warning("FORENSIC_DATABASE_URL not set; running forensic SQL on the main connection (development only)")
+        query_engine = engine
+
     try:
-        with engine.connect() as connection:
+        with query_engine.connect() as connection:
             connection.exec_driver_sql("BEGIN TRANSACTION READ ONLY")
             connection.exec_driver_sql("SET LOCAL statement_timeout = '5000ms'")
             result = connection.exec_driver_sql(statement)
@@ -110,7 +123,9 @@ def execute_sql(query: str) -> Tuple[bool, List[str], List[Dict[str, Any]], str]
             connection.rollback()
             return True, columns, rows, ""
     except Exception as exc:
-        return False, [], [], str(exc)
+        # Show only the first line of the database error (no internals/stack).
+        lines = str(getattr(exc, "orig", exc)).strip().splitlines()
+        return False, [], [], (lines[0] if lines else "Query failed.")[:300]
 
 
 def verify_money_trail(

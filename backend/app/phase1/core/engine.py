@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, status
 
-from core.config import settings
-from core.database import (
+from app.phase1.core.config import settings
+from app.phase1.core.database import (
     decode_json,
     get_supabase,
     insert_row,
@@ -15,36 +15,45 @@ from core.database import (
     update_rows,
     get_scoring_config,
 )
-from core.models import LeaderboardEntry, LeaderboardResponse, StageStatusResponse, TeamDashboardResponse
+from app.phase1.core.models import LeaderboardEntry, LeaderboardResponse, StageStatusResponse, TeamDashboardResponse
 
 
 class ProgressionEngine:
     """Central progression, scoring, submissions, and leaderboard operations."""
 
     @staticmethod
-    def get_or_create_team(name: str, passcode: str) -> Dict[str, Any]:
-        cleaned_name = name.strip()
-        team = select_one("teams", {"name": cleaned_name})
+    def get_or_create_team_for_core(core_team_id: int, name: str) -> Dict[str, Any]:
+        """Return the Phase 1 record for a platform team, creating it on first use.
+
+        Teams authenticate once through the platform login (Supabase Auth);
+        their Phase 1 progress lives in p1_teams, linked by core_team_id.
+        """
+        team = select_one("p1_teams", {"core_team_id": core_team_id})
         if team:
-            if team["passcode"] != passcode.strip():
-                raise HTTPException(status_code=401, detail="Invalid passcode for existing team.")
             if not team["is_active"]:
                 raise HTTPException(status_code=403, detail="Team has been deactivated by administrator.")
             return team
 
         now = datetime.now(timezone.utc).isoformat()
         team_id = str(uuid.uuid4())
-        team = insert_row("teams", {
-            "id": team_id,
-            "name": cleaned_name,
-            "passcode": passcode.strip(),
-            "is_active": True,
-            "current_stage": 1,
-            "total_score": 0.0,
-            "total_penalty": 0.0,
-            "created_at": now,
-            "updated_at": now,
-        })
+        try:
+            team = insert_row("p1_teams", {
+                "id": team_id,
+                "core_team_id": core_team_id,
+                "name": name.strip(),
+                "is_active": True,
+                "current_stage": 1,
+                "total_score": 0.0,
+                "total_penalty": 0.0,
+                "created_at": now,
+                "updated_at": now,
+            })
+        except Exception:
+            # Another request created it concurrently (unique core_team_id).
+            team = select_one("p1_teams", {"core_team_id": core_team_id})
+            if not team:
+                raise
+            return team
         stages = [{
             "id": str(uuid.uuid4()),
             "team_id": team_id,
@@ -59,13 +68,13 @@ class ProgressionEngine:
             "penalty_points": 0.0,
             "metadata": {},
         } for stage_id in range(1, settings.TOTAL_STAGES + 1)]
-        get_supabase().table("stage_progress").insert(stages).execute()
-        log_audit("TEAM_REGISTERED", {"team_name": cleaned_name}, team_id)
+        get_supabase().table("p1_stage_progress").insert(stages).execute()
+        log_audit("TEAM_REGISTERED", {"team_name": name.strip(), "core_team_id": core_team_id}, team_id)
         return team
 
     @staticmethod
     def get_team_by_id(team_id: str) -> Dict[str, Any]:
-        team = select_one("teams", {"id": team_id})
+        team = select_one("p1_teams", {"id": team_id})
         if not team:
             raise HTTPException(status_code=404, detail="Team not found.")
         if not team["is_active"]:
@@ -75,7 +84,7 @@ class ProgressionEngine:
     @staticmethod
     def verify_stage_access(team_id: str, stage_id: int) -> Dict[str, Any]:
         team = ProgressionEngine.get_team_by_id(team_id)
-        progress = select_one("stage_progress", {"team_id": team_id, "stage_id": stage_id})
+        progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
         if not progress:
             raise HTTPException(status_code=404, detail="Stage progress not found.")
         if stage_id > team["current_stage"] and progress["status"] == "LOCKED":
@@ -87,7 +96,7 @@ class ProgressionEngine:
 
     @staticmethod
     def check_idempotency(team_id: str, stage_id: int, idempotency_key: str) -> Optional[Dict[str, Any]]:
-        return select_one("submissions", {
+        return select_one("p1_submissions", {
             "team_id": team_id,
             "stage_id": stage_id,
             "idempotency_key": idempotency_key,
@@ -103,7 +112,7 @@ class ProgressionEngine:
         score_awarded: float,
         feedback: str = "",
     ) -> None:
-        insert_row("submissions", {
+        insert_row("p1_submissions", {
             "id": str(uuid.uuid4()),
             "team_id": team_id,
             "stage_id": stage_id,
@@ -114,7 +123,7 @@ class ProgressionEngine:
             "feedback": feedback,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        get_supabase().rpc("increment_stage_attempt", {
+        get_supabase().rpc("p1_increment_stage_attempt", {
             "p_team_id": team_id,
             "p_stage_id": stage_id,
             "p_passed": passed,
@@ -122,8 +131,8 @@ class ProgressionEngine:
 
     @staticmethod
     def _recalculate_team_totals(team_id: str) -> None:
-        progress = select_rows("stage_progress", {"team_id": team_id})
-        update_rows("teams", {"id": team_id}, {
+        progress = select_rows("p1_stage_progress", {"team_id": team_id})
+        update_rows("p1_teams", {"id": team_id}, {
             "total_score": sum(float(row["score"] or 0.0) for row in progress),
             "total_penalty": sum(float(row["penalty_points"] or 0.0) for row in progress),
         })
@@ -132,15 +141,15 @@ class ProgressionEngine:
     def complete_stage(team_id: str, stage_id: int, final_score: float, metadata: Optional[Dict[str, Any]] = None) -> None:
         now = datetime.now(timezone.utc).isoformat()
         score = max(0.0, min(10.0, round(float(final_score), 2)))
-        update_rows("stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
+        update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
             "status": "COMPLETED", "score": score, "completed_at": now, "metadata": metadata or {},
         })
         next_stage = stage_id + 1
         if next_stage <= settings.TOTAL_STAGES:
-            update_rows("stage_progress", {
+            update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
             }, {"status": "ACTIVE", "started_at": now})
-        update_rows("teams", {"id": team_id}, {
+        update_rows("p1_teams", {"id": team_id}, {
             "current_stage": min(next_stage, settings.TOTAL_STAGES + 1), "updated_at": now,
         })
         ProgressionEngine._recalculate_team_totals(team_id)
@@ -157,7 +166,7 @@ class ProgressionEngine:
         skip_penalty = float(settings.SKIP_PENALTY_DEDUCTION)
         metadata = decode_json(progress["metadata"], {})
         metadata.update({"skipped": 1, "skip_time": now})
-        update_rows("stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
+        update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
             "status": "SKIPPED",
             "score": skip_award,
             "penalty_points": float(progress["penalty_points"] or 0.0) + skip_penalty,
@@ -166,10 +175,10 @@ class ProgressionEngine:
         })
         next_stage = stage_id + 1
         if next_stage <= settings.TOTAL_STAGES:
-            update_rows("stage_progress", {
+            update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
             }, {"status": "ACTIVE", "started_at": now})
-        update_rows("teams", {"id": team_id}, {
+        update_rows("p1_teams", {"id": team_id}, {
             "current_stage": min(next_stage, settings.TOTAL_STAGES + 1), "updated_at": now,
         })
         ProgressionEngine._recalculate_team_totals(team_id)
@@ -198,7 +207,7 @@ class ProgressionEngine:
         config = get_scoring_config().get(f"game_{stage_id}", {})
         penalties = config.get("hint_penalties", [0.5, 1.0, 1.5])
         penalty = penalties[hint_index] if 0 <= hint_index < len(penalties) else 0.5
-        update_rows("stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
+        update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
             "hints_used": hints,
             "penalty_points": float(progress["penalty_points"] or 0.0) + penalty,
         })
@@ -208,7 +217,7 @@ class ProgressionEngine:
     @staticmethod
     def get_team_dashboard(team_id: str) -> TeamDashboardResponse:
         team = ProgressionEngine.get_team_by_id(team_id)
-        rows = select_rows("stage_progress", {"team_id": team_id}, "stage_id")
+        rows = select_rows("p1_stage_progress", {"team_id": team_id}, "stage_id")
         now = datetime.now(timezone.utc)
         scoring_config = get_scoring_config()
         stages = []
@@ -239,7 +248,7 @@ class ProgressionEngine:
                 penalty_points=float(row["penalty_points"]),
             ))
 
-        teams = select_rows("teams", {"is_active": True})
+        teams = select_rows("p1_teams", {"is_active": True})
         teams.sort(key=lambda row: (-float(row["total_score"]), row["updated_at"]))
         rank = next((index for index, row in enumerate(teams, start=1) if row["id"] == team_id), 1)
         return TeamDashboardResponse(
@@ -250,9 +259,9 @@ class ProgressionEngine:
 
     @staticmethod
     def get_leaderboard() -> LeaderboardResponse:
-        teams = select_rows("teams", {"is_active": True})
+        teams = select_rows("p1_teams", {"is_active": True})
         teams.sort(key=lambda row: (-float(row["total_score"]), row["updated_at"]))
-        progress_rows = select_rows("stage_progress")
+        progress_rows = select_rows("p1_stage_progress")
         progress_by_team: Dict[str, List[Dict[str, Any]]] = {}
         for row in progress_rows:
             progress_by_team.setdefault(row["team_id"], []).append(row)
@@ -276,7 +285,7 @@ class ProgressionEngine:
     def admin_reset_team(team_id: str, target_stage: int = 1) -> None:
         now = datetime.now(timezone.utc).isoformat()
         for stage_id in range(target_stage, settings.TOTAL_STAGES + 1):
-            update_rows("stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
+            update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
                 "status": "ACTIVE" if stage_id == target_stage else "LOCKED",
                 "score": 0.0,
                 "started_at": now if stage_id == target_stage else None,
@@ -287,6 +296,6 @@ class ProgressionEngine:
                 "penalty_points": 0.0,
                 "metadata": {},
             })
-        update_rows("teams", {"id": team_id}, {"current_stage": target_stage, "updated_at": now})
+        update_rows("p1_teams", {"id": team_id}, {"current_stage": target_stage, "updated_at": now})
         ProgressionEngine._recalculate_team_totals(team_id)
         log_audit("ADMIN_RESET_TEAM", {"target_stage": target_stage}, team_id)

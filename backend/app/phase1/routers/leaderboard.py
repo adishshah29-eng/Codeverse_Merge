@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from core.models import LeaderboardResponse
-from core.engine import ProgressionEngine
+from app.phase1.core.models import LeaderboardResponse
+from app.phase1.core.engine import ProgressionEngine
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 

@@ -54,8 +54,6 @@ def verify_blueprint_submission(extraction_code: str, fragment: str = None) -> D
     return {
         "passed": is_correct,
         "message": msg,
-        "details": {
-            "expected_code": correct_code,
-            "submitted_code": extraction_code
-        }
+        # The expected code is intentionally not returned to the client.
+        "details": {"code_matched": is_correct}
     }

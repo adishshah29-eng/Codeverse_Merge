@@ -1,12 +1,26 @@
+# CODEVERSE backend — Python 3.12 (Ubuntu 24.04 LTS default)
+# Install: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+# Web framework + servers
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
-python-multipart==0.0.20
+gunicorn==23.0.0
 pydantic-settings==2.8.1
+python-multipart==0.0.20
+python-dotenv==1.1.0
+
+# Database (Phase 2: SQLAlchemy over Postgres; Phase 1: Supabase REST client)
 sqlalchemy==2.0.40
 psycopg2-binary==2.9.10
-pandas==2.2.3
-python-jose[cryptography]==3.4.0
-httpx==0.28.1
-jinja2==3.1.6
-python-dotenv==1.1.0
 supabase==2.15.1
+
+# Auth: Supabase session verification (HS256 secret or JWKS) + admin tokens
+PyJWT[crypto]==2.10.1
+httpx==0.28.1
+
+# Game engines. numpy / pandas / scikit-learn / matplotlib are also the
+# runtime available to team code in Phase 1 (Alarm System, Printing Press).
+pandas==2.2.3
+numpy==2.2.5
+scikit-learn==1.6.1
+matplotlib==3.10.1
