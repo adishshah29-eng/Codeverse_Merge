@@ -1,5 +1,5 @@
-import fcntl
 import logging
+import os
 import sqlite3
 import time
 import uuid
@@ -36,17 +36,37 @@ logger = logging.getLogger("codeverse")
 
 
 
+if os.name == "nt":  # Windows (local development only)
+    import msvcrt
+
+    def _lock_file(handle):
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _unlock_file(handle):
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+else:
+    import fcntl
+
+    def _lock_file(handle):
+        fcntl.flock(handle, fcntl.LOCK_EX)
+
+    def _unlock_file(handle):
+        fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 def seed_database():
     """Initializes tables and seeds initial teams, hint catalog, clocks, and config if not already present."""
     lock_path = f"{DATABASE_PATH}.seed.lock"
-    with open(lock_path, "w") as lock_file:
+    with open(lock_path, "a+") as lock_file:
         # Every Gunicorn worker runs startup; only one may seed at a time.
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        _lock_file(lock_file)
         try:
             _seed_database()
             create_phase1_schema()
         finally:
-            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            _unlock_file(lock_file)
     secure_database_files()
 
 

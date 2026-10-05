@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import logging
 import os
-import resource
 import shutil
 import signal
 import subprocess
@@ -34,6 +33,11 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from app.settings import settings
+
+try:  # POSIX only; on Windows (local development) limits are skipped.
+    import resource
+except ImportError:
+    resource = None
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +59,7 @@ class RunResult:
 
 
 def _clean_env(workdir: str) -> dict:
-    return {
+    env = {
         "PATH": "/usr/local/bin:/usr/bin:/bin",
         "HOME": workdir,
         "TMPDIR": workdir,
@@ -70,9 +74,15 @@ def _clean_env(workdir: str) -> dict:
         "MKL_NUM_THREADS": "1",
         "NUMEXPR_NUM_THREADS": "1",
     }
+    if os.name == "nt":  # Windows needs these for Python to start at all
+        env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", r"C:\Windows")
+        env["PATH"] = os.path.dirname(sys.executable)
+    return env
 
 
 def _limits(timeout_seconds: int):
+    if resource is None:
+        return None
     memory = settings.code_exec_memory_mb * 1024 * 1024
 
     def apply() -> None:
@@ -198,14 +208,17 @@ def run_python(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 preexec_fn=_limits(timeout_seconds),
-                start_new_session=True,
+                start_new_session=os.name != "nt",
             )
             try:
                 stdout, stderr = proc.communicate(timeout=timeout_seconds)
                 timed_out = False
             except subprocess.TimeoutExpired:
                 try:
-                    os.killpg(proc.pid, signal.SIGKILL)
+                    if os.name == "nt":
+                        proc.kill()
+                    else:
+                        os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
                 stdout, stderr = proc.communicate()

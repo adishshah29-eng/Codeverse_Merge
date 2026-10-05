@@ -119,26 +119,50 @@ compiled into public JavaScript.
 
 ## Run locally
 
-Requirements: Python 3.12, Node.js ≥ 20.19. Nothing else — the database is a local file.
+Requirements: **Python 3.12** and **Node.js ≥ 20.19**. Nothing else — the database is a local file.
+Works on Windows, macOS and Linux. Only this branch is downloaded with `--single-branch`.
 
-```bash
-git clone -b claude/repo-work-wd3ehi-sqlite https://github.com/adishshah29-eng/Codeverse_Merge.git codeverse
-cd codeverse
+**Windows (PowerShell)**
 
-# Backend
-cp backend/.env.example backend/.env      # set SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD, answers
-python3 -m venv backend/.venv
-backend/.venv/bin/pip install -r backend/requirements.txt
-cd backend && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```powershell
+git clone --single-branch -b claude/repo-work-wd3ehi-sqlite https://github.com/adishshah29-eng/Codeverse_Merge.git codeverse
+cd codeverse\backend
+copy .env.example .env          # then edit .env: SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
+py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-In a second terminal:
+Second PowerShell window:
+
+```powershell
+cd codeverse\frontend
+npm ci
+npm run dev                     # open http://localhost:5173
+```
+
+**macOS / Linux**
+
+```bash
+git clone --single-branch -b claude/repo-work-wd3ehi-sqlite https://github.com/adishshah29-eng/Codeverse_Merge.git codeverse
+cd codeverse/backend
+cp .env.example .env            # then edit .env: SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Second terminal:
 
 ```bash
 cd codeverse/frontend
 npm ci
-npm run dev          # http://localhost:5173  (proxies /api and /vendor to :8000)
+npm run dev                     # open http://localhost:5173
 ```
+
+The Phase 2 answers in `.env` (`STAGE1_DELETION_KEY`, …) can be any test values locally.
+On Windows and macOS, Phase 1 submitted code runs without the bubblewrap sandbox (Linux-only);
+that is fine for testing, and production on Ubuntu uses the sandbox.
 
 Shortcuts: `./scripts/dev-backend.sh` and `./scripts/dev-frontend.sh`.
 
