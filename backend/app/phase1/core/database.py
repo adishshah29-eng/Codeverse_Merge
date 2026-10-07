@@ -82,9 +82,27 @@ def seed_default_scoring_config():
                 "value": settings.SCORING_CONFIG,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }).execute()
+        else:
+            _upgrade_game4_baseline(sb)
     except Exception as exc:
         # Non-fatal: config falls back to settings.SCORING_CONFIG
         logger.warning("Could not seed Phase 1 scoring config: %s", exc)
+
+
+# The original default (156) is below the cheapest legal Mint Map route (284),
+# which capped a perfect route at 4.67 / 10. Upgrade configs that still hold
+# that untouched default; any other organizer-chosen value is left alone.
+_OLD_GAME4_OPTIMAL_COST = 156.0
+
+
+def _upgrade_game4_baseline(sb) -> None:
+    rows = sb.table("p1_dynamic_config").select("value").eq("key", "scoring").execute().data
+    config = decode_json(rows[0]["value"], {}) if rows else {}
+    game4 = config.get("game_4") if isinstance(config, dict) else None
+    if isinstance(game4, dict) and float(game4.get("optimal_cost", 0)) == _OLD_GAME4_OPTIMAL_COST:
+        game4["optimal_cost"] = settings.SCORING_CONFIG["game_4"]["optimal_cost"]
+        update_scoring_config(config)
+        logger.info("Phase 1 scoring: game_4.optimal_cost upgraded from 156 to %s", game4["optimal_cost"])
 
 
 # ── Scoring Config Helpers ────────────────────────────────────────────────────

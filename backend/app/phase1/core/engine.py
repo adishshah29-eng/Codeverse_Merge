@@ -251,11 +251,26 @@ class ProgressionEngine:
         teams = select_rows("p1_teams", {"is_active": True})
         teams.sort(key=lambda row: (-float(row["total_score"]), row["updated_at"]))
         rank = next((index for index, row in enumerate(teams, start=1) if row["id"] == team_id), 1)
+        mission_complete = team["current_stage"] > settings.TOTAL_STAGES
         return TeamDashboardResponse(
             team_id=team["id"], team_name=team["name"], current_stage=team["current_stage"],
             total_score=float(team["total_score"]), total_penalty=float(team["total_penalty"]),
             stages=stages, rank=rank, total_teams=len(teams),
+            shutdown_code=ProgressionEngine._shutdown_code() if mission_complete else None,
         )
+
+    @staticmethod
+    def _shutdown_code() -> Optional[str]:
+        """The vault shutdown code (Phase 2 config) awarded for finishing Phase 1."""
+        from app.db import SessionLocal
+        from app.models import ConfigKV
+
+        db = SessionLocal()
+        try:
+            row = db.query(ConfigKV).filter(ConfigKV.key == "stage4_shutdown_code").one_or_none()
+            return row.value if row and row.value else None
+        finally:
+            db.close()
 
     @staticmethod
     def get_leaderboard() -> LeaderboardResponse:

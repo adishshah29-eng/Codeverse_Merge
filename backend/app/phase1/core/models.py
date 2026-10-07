@@ -33,6 +33,8 @@ class TeamDashboardResponse(BaseModel):
     stages: List[StageStatusResponse]
     rank: Optional[int] = None
     total_teams: int = 0
+    # Revealed once all Phase 1 stages are finished; needed in Phase 2 Stage 4.
+    shutdown_code: Optional[str] = None
 
 class LeaderboardEntry(BaseModel):
     rank: int

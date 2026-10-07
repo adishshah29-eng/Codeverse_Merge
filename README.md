@@ -106,7 +106,7 @@ Template: [`backend/.env.example`](backend/.env.example) (every variable is docu
 | `SECRET_KEY` | ✅ | ≥ 32 random chars; signs team and organizer sessions |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | ✅ | organizer login (password ≥ 12 chars in production) |
 | `COOKIE_SECURE` | ✅ prod | `true` behind HTTPS |
-| `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | ✅ | Phase 2 answers (seeded on first start, editable in admin) |
+| `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | no | Phase 2 answers. Leave empty to use defaults that match the in-game clues (see `.env.example`); editable later in admin |
 | `CORS_ORIGINS` | no | leave empty (same-origin deployment) |
 | `CODE_SANDBOX` | prod | `bwrap` in production (Phase 1 code isolation) |
 | `CODE_EXEC_MAX_CONCURRENT`, `CODE_EXEC_QUEUE_TIMEOUT`, `CODE_EXEC_MEMORY_MB` | no | Phase 1 code-run limits |
@@ -160,7 +160,7 @@ npm ci
 npm run dev                     # open http://localhost:5173
 ```
 
-The Phase 2 answers in `.env` (`STAGE1_DELETION_KEY`, …) can be any test values locally.
+Leave the Phase 2 answers in `.env` empty — the built-in defaults match the in-game clues.
 On Windows and macOS, Phase 1 submitted code runs without the bubblewrap sandbox (Linux-only);
 that is fine for testing, and production on Ubuntu uses the sandbox.
 

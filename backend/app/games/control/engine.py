@@ -54,12 +54,13 @@ def evaluate_code_submission(puzzle_id: int, code: str, puzzle_codes: dict, deco
         return False, "Invalid sector ID", False
 
     clean_code = code.strip().upper()
-    target_code = puzzle_codes[puzzle_id]
+    # Compare case-insensitively: the configured code may contain lower case.
+    target_code = (puzzle_codes[puzzle_id] or "").strip().upper()
     if not target_code:
         return False, "This sector is not configured for code submission.", False
 
     # Check decoy body code for Sector 3
-    if puzzle_id == 3 and clean_code == decoy_body_code:
+    if puzzle_id == 3 and clean_code == (decoy_body_code or "").strip().upper():
         return False, "Decoy detected! The audit code is NOT in the JSON response body. Inspect HTTP headers.", True
 
     # Check request ID decoy

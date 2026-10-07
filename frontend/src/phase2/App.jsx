@@ -20,7 +20,9 @@ export default function App() {
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [isHintsOpen, setIsHintsOpen] = useState(false);
 
-  const checkAuth = async () => {
+  // keepView: refresh team data without leaving the current screen (used after
+  // hints and after Stage 4, whose finale plays on the stage screen itself).
+  const checkAuth = async ({ keepView = false } = {}) => {
     try {
       const res = await api.getMe();
       if (res.authenticated) {
@@ -28,7 +30,7 @@ export default function App() {
         if (res.role === "team") {
           setTeam(res.team);
           loadStages();
-          setActiveView("dashboard");
+          if (!keepView) setActiveView("dashboard");
         } else if (res.role === "admin") {
           setActiveView("admin");
         }
@@ -82,7 +84,7 @@ export default function App() {
   };
 
   const handleStageCompleted = async (stageId, scoreEarned) => {
-    await checkAuth();
+    await checkAuth({ keepView: stageId === 4 });
     await loadStages();
   };
 
@@ -193,7 +195,7 @@ export default function App() {
       <HintDrawer
         isOpen={isHintsOpen}
         onClose={() => setIsHintsOpen(false)}
-        onHintUsed={() => checkAuth()}
+        onHintUsed={() => checkAuth({ keepView: true })}
       />
     </div>
   );
