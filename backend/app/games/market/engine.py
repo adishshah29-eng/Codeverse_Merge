@@ -72,6 +72,10 @@ MARKET_CATALOG = {
 }
 
 
+# Placeholder in item intel replaced with the configured Stage 4 shutdown code.
+SHUTDOWN_CODE_PLACEHOLDER = "MINT-FREQUENCY-912"
+
+
 def get_item(category: str, item_id: str) -> Optional[Dict[str, Any]]:
     category_items = MARKET_CATALOG.get(category, [])
     for item in category_items:

@@ -1,4 +1,6 @@
+import hashlib
 import logging
+import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -32,6 +34,23 @@ logger = logging.getLogger("codeverse")
 
 # Arbitrary constant: serializes startup seeding across Gunicorn workers.
 _SEED_LOCK_ID = 727_2026
+
+
+def event_answer_defaults() -> dict:
+    """Defaults for Phase 2 answers when the corresponding .env value is empty."""
+    return {
+        # Stage 1: the terminal log tells teams the key is
+        # SHA256(TXN-884920:BADGE-991:48500000).
+        "stage1_deletion_key": hashlib.sha256(b"TXN-884920:BADGE-991:48500000").hexdigest().upper(),
+        # Stage 2: teams read these from the game itself, so any value works.
+        "ctf_puzzle3_code": f"IVB-AUDIT-{secrets.token_hex(3).upper()}",
+        "ctf_control_token": f"MINT-OMEGA-{secrets.token_hex(3).upper()}",
+        # Stage 4: shown to teams on the Phase 1 completion screen and by the
+        # Black Market classified drop.
+        "stage4_shutdown_code": "MINT-FREQUENCY-912",
+        # Stage 4: the order described by the on-screen field notes.
+        "stage4_sequence": "surveillance,alarm,locks,passage,crew",
+    }
 
 
 def seed_database():
@@ -162,6 +181,10 @@ def _seed_database():
             "stage4_sequence": settings.stage4_sequence,
         }
         config_defaults.update({key: value for key, value in configured_secrets.items() if value})
+        # Event answers left empty in .env fall back to values that are consistent
+        # with the in-game clues, so no stage is ever unsolvable by configuration.
+        for key, value in event_answer_defaults().items():
+            config_defaults.setdefault(key, value)
 
         for key, value in config_defaults.items():
             if not db.query(ConfigKV).filter(ConfigKV.key == key).one_or_none():

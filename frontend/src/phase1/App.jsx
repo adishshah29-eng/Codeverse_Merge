@@ -168,6 +168,14 @@ export default function App() {
               </div>
             </div>
 
+            {dashboard?.shutdown_code && (
+              <div className="max-w-md mx-auto p-4 rounded-2xl bg-[#111726] border border-[#d4af37]/40 font-mono text-left">
+                <div className="text-[10px] text-[#d4af37] uppercase tracking-widest">Recovered from the Mint mainframe</div>
+                <div className="text-xs text-gray-300 mt-1">Vault shutdown code — required for the Phase 2 Final Extraction:</div>
+                <div className="text-xl font-black text-white mt-2 tracking-wider select-all">{dashboard.shutdown_code}</div>
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => setIsLeaderboardOpen(true)}

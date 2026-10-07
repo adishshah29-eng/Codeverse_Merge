@@ -104,7 +104,7 @@ Template: [`backend/.env.example`](backend/.env.example) (every variable is docu
 | `SECRET_KEY` | ✅ | ≥ 32 random chars; signs organizer sessions |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | ✅ | organizer login (password ≥ 12 chars in production) |
 | `COOKIE_SECURE` | ✅ prod | `true` behind HTTPS |
-| `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | ✅ | Phase 2 answers (seeded on first start, editable in admin) |
+| `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | no | Phase 2 answers. Leave empty to use defaults that match the in-game clues (see `.env.example`); editable later in admin |
 | `CORS_ORIGINS` | no | leave empty (same-origin deployment) |
 | `CODE_SANDBOX` | prod | `bwrap` in production (Phase 1 code isolation) |
 | `CODE_EXEC_MAX_CONCURRENT`, `CODE_EXEC_QUEUE_TIMEOUT`, `CODE_EXEC_MEMORY_MB` | no | Phase 1 code-run limits |
@@ -152,6 +152,8 @@ cd codeverse/frontend
 npm ci
 npm run dev          # http://localhost:5173  (proxies /api and /vendor to :8000)
 ```
+
+Leave the Phase 2 answers in `.env` empty — the built-in defaults match the in-game clues.
 
 Shortcuts: `./scripts/dev-backend.sh` and `./scripts/dev-frontend.sh`.
 

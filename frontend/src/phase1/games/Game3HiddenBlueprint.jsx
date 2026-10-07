@@ -334,7 +334,7 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. 17-04"
+                  placeholder="e.g. 00-00"
                   value={fragmentInput}
                   onChange={(e) => setFragmentInput(e.target.value)}
                   className="flex-1 px-3 py-1.5 rounded-lg bg-[#0d121d] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"

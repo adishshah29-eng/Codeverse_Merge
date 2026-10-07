@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from ..auth import current_team
 from ..db import get_db
 from ..games.market.engine import (
+    SHUTDOWN_CODE_PLACEHOLDER,
     calculate_team_item_price,
     get_catalog_for_team,
     get_item,
@@ -19,6 +20,14 @@ def _cfg(db: Session, key: str) -> str:
     if not row:
         raise HTTPException(status_code=503, detail=f"Game configuration is missing: {key}")
     return row.value
+
+
+def _intel(text: str | None, db: Session) -> str | None:
+    """Show the actually configured shutdown code in market intel."""
+    if not text or SHUTDOWN_CODE_PLACEHOLDER not in text:
+        return text
+    row = db.query(ConfigKV).filter(ConfigKV.key == "stage4_shutdown_code").one_or_none()
+    return text.replace(SHUTDOWN_CODE_PLACEHOLDER, row.value) if row and row.value else text
 
 
 @router.get("/catalog")
@@ -39,6 +48,11 @@ def get_market_catalog(
         purchased_item_ids=purchased_ids,
         inflation_rate=inflation_rate,
     )
+
+    for items in catalog.values():
+        for item in items:
+            if item.get("intel"):
+                item["intel"] = _intel(item["intel"], db)
 
     return {
         "success": True,
@@ -127,7 +141,7 @@ def purchase_market_item(
         "message": f"Asset {item['name']} acquired successfully!",
         "new_balance": team.money,
         "effective_price": effective_price,
-        "intel": item.get("intel"),
+        "intel": _intel(item.get("intel"), db),
         "buff_applied": buff_applied,
         "team_purchases": team.black_market_purchases,
     }

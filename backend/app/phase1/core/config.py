@@ -62,7 +62,7 @@ class Settings(BaseSettings):
         "game_4": {
             "type": "approach_quality", # Path efficiency: Risk + 2 * Time
             "max_score": 10.0,
-            "optimal_cost": 156.0, # Baseline known lowest cost path
+            "optimal_cost": 284.0, # Lowest cost of any legal route (0-2-5-1-4-8-12-17-20)
             "max_acceptable_cost": 300.0,
             "min_valid_points": 4.0,
             "wrong_attempt_penalty": 0.2,

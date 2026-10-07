@@ -9,7 +9,7 @@ CHALLENGES = [
         "stageNumber": 1,
         "title": "Telemetry Matrix Robust Z-Score Normalization",
         "category": "NumPy Vectorized Cleaning",
-        "expectedOutput": "DISARM_SEQ: NP-ROBUST-Z-02-319.54",
+        "expectedOutput": "DISARM_SEQ: NP-ROBUST-Z-03-568.15",
         "description": "Clean NaN dropouts and calculate modified Z-scores based on Median Absolute Deviation (MAD). 3 bugs present.",
         "buggyCode": """import numpy as np
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         "stageNumber": 2,
         "title": "Financial Ledger Rolling VWAP & Anomaly Filter",
         "category": "Pandas Time-Series",
-        "expectedOutput": "DISARM_SEQ: PD-VWAP-3800-1.46",
+        "expectedOutput": "DISARM_SEQ: PD-VWAP-3800-0.19",
         "description": "Calculate 3-period rolling Volume Weighted Average Price (VWAP). 3 bugs present.",
         "buggyCode": """import pandas as pd
 import numpy as np
