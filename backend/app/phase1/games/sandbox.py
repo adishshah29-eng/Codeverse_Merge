@@ -153,8 +153,26 @@ def sandbox_mode() -> str:
     return "unavailable" if mode == "bwrap" else "none"
 
 
+def _protect_server_process() -> bool:
+    """Without bubblewrap, team code runs as the same OS user as the API server
+    and could read the server's environment (secrets) via /proc/<pid>/environ.
+    Marking the server process non-dumpable makes its /proc entries owned by
+    root, so they are unreadable to those child processes. Linux only."""
+    if not sys.platform.startswith("linux"):
+        return False
+    try:
+        import ctypes
+
+        PR_SET_DUMPABLE = 4
+        return ctypes.CDLL(None, use_errno=True).prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) == 0
+    except (OSError, AttributeError):
+        return False
+
+
 def log_sandbox_status() -> None:
     mode = sandbox_mode()
+    if mode != "bwrap" and _protect_server_process():
+        logger.info("Code sandbox: server process marked non-dumpable (environment hidden from team code)")
     if mode == "bwrap":
         logger.info("Code sandbox: bubblewrap isolation active")
     elif mode == "unavailable":

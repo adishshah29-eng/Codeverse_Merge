@@ -9,12 +9,11 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .logging_config import configure_logging
-from .settings import ROOT, settings
+from .settings import settings
 
 configure_logging()
 
@@ -56,13 +55,12 @@ def event_answer_defaults() -> dict:
 def seed_database():
     """Initializes tables and seeds initial teams, hint catalog, clocks, and config if not already present."""
     with engine.connect() as lock_conn:
-        # Every Gunicorn worker runs startup; only one may seed at a time.
-        lock_conn.execute(text("SELECT pg_advisory_lock(:id)"), {"id": _SEED_LOCK_ID})
-        try:
+        # Every worker / serverless instance runs startup; only one may seed at
+        # a time. A transaction-scoped lock is released automatically on commit
+        # or disconnect, so it is also safe behind Supabase's transaction pooler.
+        with lock_conn.begin():
+            lock_conn.execute(text("SELECT pg_advisory_xact_lock(:id)"), {"id": _SEED_LOCK_ID})
             _seed_database()
-        finally:
-            lock_conn.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": _SEED_LOCK_ID})
-            lock_conn.commit()
 
 
 def _seed_database():
@@ -300,10 +298,8 @@ app.include_router(p1_games.router, prefix="/api/phase1", dependencies=phase1)
 app.include_router(p1_leaderboard.router, prefix="/api/phase1")
 app.include_router(p1_admin.router, prefix="/api/phase1")
 
-# In production Nginx serves /vendor directly; this mount is for local development.
-vendor_path = ROOT / "vendor"
-if vendor_path.exists():
-    app.mount("/vendor", StaticFiles(directory=str(vendor_path)), name="vendor")
+# /vendor (static game assets) now lives in frontend/public/vendor and is
+# served with the frontend build (Vite in development, Nginx/Vercel in production).
 
 
 @app.get("/api/health")

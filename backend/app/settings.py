@@ -2,9 +2,9 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ROOT = Path(__file__).resolve().parents[2]
-BACKEND_DIR = ROOT / "backend"
-VENDOR = ROOT / "vendor"
+# backend/ (the directory containing the app package). On Vercel this is the
+# service root, so nothing here may depend on files outside backend/.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):

@@ -24,7 +24,7 @@ This repository was created by merging
  Browser ──HTTPS──► Cloudflare ──Tunnel──► cloudflared ──► Nginx :80 (Ubuntu)
                                                             │
                      /, /phase1/, /phase2/, /assets/  ◄─────┤  static React build (frontend/dist)
-                     /vendor/                         ◄─────┤  static game assets (vendor/)
+                     /vendor/                         ◄─────┤  static game assets (frontend/public/vendor)
                      /api/*  ───────────────────────────────┘► Gunicorn + Uvicorn workers :8000 (FastAPI)
                                                                    │
                                                   Supabase Cloud ◄─┘  Auth (team logins) + Postgres (all data)
@@ -71,11 +71,10 @@ This repository was created by merging
 │   │   ├── phase1/             # Phase 1 React app (Tailwind)
 │   │   ├── phase2/             # Phase 2 React app
 │   │   └── shared/config.js    # API base URL
-│   ├── public/                 # static images
+│   ├── public/                 # static images + vendor/ (Phase 2 market iframe, CTF pages)
 │   ├── package.json, package-lock.json, vite.config.js
 │   └── .env.example
 ├── supabase/schema.sql         # complete database schema (run once)
-├── vendor/                     # static mini-sites used by Phase 2 (market iframe, CTF pages)
 ├── deploy/
 │   ├── nginx/codeverse.conf
 │   ├── systemd/codeverse-backend.service
@@ -150,7 +149,7 @@ In a second terminal:
 ```bash
 cd codeverse/frontend
 npm ci
-npm run dev          # http://localhost:5173  (proxies /api and /vendor to :8000)
+npm run dev          # http://localhost:5173  (proxies /api to :8000)
 ```
 
 Leave the Phase 2 answers in `.env` empty — the built-in defaults match the in-game clues.
@@ -251,8 +250,7 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -s http://127.0.0.1/api/health                  # through Nginx
 ```
 
-Nginx (user `www-data`) must be able to read `/opt/codeverse/frontend/dist` and
-`/opt/codeverse/vendor`; the default 755 permissions allow this.
+Nginx (user `www-data`) must be able to read `/opt/codeverse/frontend/dist`; the default 755 permissions allow this.
 
 ### 7. Cloudflare Tunnel
 
@@ -281,6 +279,44 @@ cd /opt/codeverse
 sudo -u codeverse ./scripts/deploy.sh
 sudo systemctl restart codeverse-backend
 ```
+
+## Deploying on Vercel (alternative to Ubuntu)
+
+`vercel.json` defines a Vercel project with two services:
+
+| Service | Root | Public path | What it is |
+| --- | --- | --- | --- |
+| `backend` | `backend/` | `/api/*` | FastAPI (`app.main:app`) as a Vercel Function, max 60 s per request |
+| `frontend` | `frontend/` | everything else (`/`, `/phase1/`, `/phase2/`, `/vendor/…`) | static Vite build |
+
+Vercel forwards `/api/...` to the backend with the path unchanged, so routes and the
+frontend's same-origin `/api` calls work without changes. There are no service bindings:
+neither service calls the other server-side (the browser calls `/api`).
+
+1. Supabase setup as above (schema, `forensic_reader` password, sign-ups off, token expiry).
+2. Import the repository in Vercel (this branch). Vercel reads `vercel.json`.
+3. Project → Settings → Environment Variables (Production), from `backend/.env.example`:
+   `ENVIRONMENT=production`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `SUPABASE_JWT_SECRET` (recommended), `DATABASE_URL` and `FORENSIC_DATABASE_URL` **using the
+   Supabase pooler** (Transaction mode, port 6543; user `forensic_reader.<project-ref>`),
+   `DB_POOL_SIZE=2`, `DB_MAX_OVERFLOW=3`, `SECRET_KEY`, `COOKIE_SECURE=true`,
+   `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `CODE_SANDBOX=auto`. Leave the Phase 2 answer variables empty.
+4. Deploy. Check `https://<deployment>/api/health/ready`.
+
+Local run of the same setup: `vercel dev -L` from the repository root.
+
+**Limits to know on Vercel**
+
+* **No bubblewrap sandbox.** Phase 1 code runs (Alarm System, Printing Press) still get a scrubbed
+  environment, resource limits and a temp directory, and the API process's own environment is
+  hidden from them, but team code **can read files deployed with the function**, including
+  `answer_key.csv` and the Phase 1 source. For a public event, host the backend on Ubuntu with
+  bubblewrap, or accept this risk.
+* **Bundle size.** The scientific Python stack is about 400 MB; Vercel installs part of it when a
+  new instance starts, so cold starts are slower. Enabling *Large Functions* in the project
+  avoids that.
+* **SQLite edition is not suitable for Vercel** (function filesystems are temporary and
+  instances do not share disk); use this Supabase edition.
 
 ## Operating the event
 

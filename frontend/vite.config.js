@@ -8,7 +8,7 @@ import react from "@vitejs/plugin-react";
 //   /phase2/  → phase2/index.html  (Operación Fuga)
 // Separate pages keep each phase's global CSS isolated from the other.
 //
-// In development the Vite server proxies /api and /vendor to FastAPI, so the
+// In development the Vite server proxies /api to FastAPI, so the
 // browser only ever talks to one origin — exactly like Nginx in production.
 const backend = process.env.VITE_DEV_BACKEND || "http://127.0.0.1:8000";
 
@@ -32,14 +32,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": { target: backend, changeOrigin: true },
-      "/vendor": { target: backend, changeOrigin: true },
     },
   },
   preview: {
     port: 4173,
     proxy: {
       "/api": { target: backend, changeOrigin: true },
-      "/vendor": { target: backend, changeOrigin: true },
     },
   },
 });
