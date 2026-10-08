@@ -61,7 +61,7 @@ export default function StageStepper({
           const isSkipped = stage.status === "skipped";
           const isCurrent = stage.id === currentStage;
           const isLocked = stage.status === "locked";
-          const canEnter = isCurrent && !isCompleted && !isSkipped;
+          const canEnter = stage.debug_unlock ? true : isCurrent && !isCompleted && !isSkipped;
 
           let borderColor = "var(--border-subtle)";
           let statusBadge = <span className="badge badge-cyan">OPEN</span>;

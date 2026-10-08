@@ -108,6 +108,7 @@ Template: [`backend/.env.example`](backend/.env.example) (every variable is docu
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | ✅ | organizer login (password ≥ 12 chars in production) |
 | `COOKIE_SECURE` | ✅ prod | `true` behind HTTPS |
 | `STAGE1_DELETION_KEY`, `CTF_PUZZLE3_CODE`, `CTF_CONTROL_TOKEN`, `STAGE4_SHUTDOWN_CODE`, `STAGE4_SEQUENCE` | ✅ | Phase 2 answers (seeded on first start, editable in admin) |
+| `DEBUG_UNLOCK_ALL` | no | **debug only** — `true` opens every stage of Phase 1 and Phase 2 to every team, in any order, replayable. The server refuses to start in production with it on |
 | `CORS_ORIGINS` | no | leave empty (same-origin deployment) |
 | `CODE_SANDBOX` | prod | `bwrap` in production (Phase 1 code isolation) |
 | `CODE_EXEC_MAX_CONCURRENT`, `CODE_EXEC_QUEUE_TIMEOUT`, `CODE_EXEC_MEMORY_MB` | no | Phase 1 code-run limits |

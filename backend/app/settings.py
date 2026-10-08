@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Serve interactive API docs at /api/docs. Keep disabled in production.
     enable_docs: bool = False
+    # DEBUG ONLY: every stage of both phases is open to every team, in any order, and finished stages can be replayed.
+    # Refused in production. Scores/progress are still recorded normally.
+    debug_unlock_all: bool = False
 
     secret_key: str = ""
     # SQLite database file. Production: /var/lib/codeverse/codeverse.db
@@ -73,6 +76,8 @@ class Settings(BaseSettings):
             problems.append("COOKIE_SECURE must be true behind HTTPS")
         if self.code_sandbox.lower() == "none":
             problems.append("CODE_SANDBOX=none is not allowed in production (use bwrap)")
+        if self.debug_unlock_all:
+            problems.append("DEBUG_UNLOCK_ALL must be false in production")
         if "*" in self.cors_origin_list:
             problems.append("CORS_ORIGINS must not contain '*'")
         return problems

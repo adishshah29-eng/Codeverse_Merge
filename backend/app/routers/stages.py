@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import current_team
 from ..db import get_db
+from ..settings import settings
 from ..models import AuditEvent, ConfigKV, GameOutput, Penalty, StageProgress, Team
 
 router = APIRouter(prefix="/api/stages", tags=["stages"])
@@ -93,7 +94,7 @@ def get_stages(
     for meta in STAGE_METADATA:
         s_id = meta["id"]
         p = progress_by_stage.get(s_id)
-        status = p.status if p else ("open" if s_id <= team.current_stage else "locked")
+        status = p.status if p else ("open" if s_id <= team.current_stage or settings.debug_unlock_all else "locked")
         score = p.score if p else 0.0
 
         result.append({
@@ -104,6 +105,7 @@ def get_stages(
             # SECURITY: boolean flag only, NOT the actual key value
             "output_acquired": meta["output_key"] in acquired_keys,
             "is_current": (s_id == team.current_stage),
+            "debug_unlock": settings.debug_unlock_all,   # frontend: let the team enter this stage regardless of progress
         })
 
     return {

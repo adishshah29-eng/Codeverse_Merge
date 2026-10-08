@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 
 from app.phase1.core.config import settings
+from app.settings import settings as settings_app
 from app.phase1.core.database import (
     decode_json,
     get_store,
@@ -88,6 +89,11 @@ class ProgressionEngine:
         progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
         if not progress:
             raise HTTPException(status_code=404, detail="Stage progress not found.")
+        if settings_app.debug_unlock_all and progress["status"] == "LOCKED":
+            # debug mode: opening a stage out of order activates it
+            now = datetime.now(timezone.utc).isoformat()
+            update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {"status": "ACTIVE", "started_at": now})
+            progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
         if stage_id > team["current_stage"] and progress["status"] == "LOCKED":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -150,8 +156,9 @@ class ProgressionEngine:
             update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
             }, {"status": "ACTIVE", "started_at": now})
+        team_row = select_one("p1_teams", {"id": team_id})
         update_rows("p1_teams", {"id": team_id}, {
-            "current_stage": min(next_stage, settings.TOTAL_STAGES + 1), "updated_at": now,
+            "current_stage": max(int(team_row["current_stage"]), min(next_stage, settings.TOTAL_STAGES + 1)), "updated_at": now,
         })
         ProgressionEngine._recalculate_team_totals(team_id)
         log_audit("STAGE_COMPLETED", {"stage_id": stage_id, "score": score, "next_stage": next_stage}, team_id)
@@ -179,8 +186,9 @@ class ProgressionEngine:
             update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
             }, {"status": "ACTIVE", "started_at": now})
+        team_row = select_one("p1_teams", {"id": team_id})
         update_rows("p1_teams", {"id": team_id}, {
-            "current_stage": min(next_stage, settings.TOTAL_STAGES + 1), "updated_at": now,
+            "current_stage": max(int(team_row["current_stage"]), min(next_stage, settings.TOTAL_STAGES + 1)), "updated_at": now,
         })
         ProgressionEngine._recalculate_team_totals(team_id)
         log_audit("STAGE_SKIPPED", {
@@ -279,7 +287,7 @@ class ProgressionEngine:
         return TeamDashboardResponse(
             team_id=team["id"], team_name=team["name"], current_stage=team["current_stage"],
             total_score=float(team["total_score"]), total_penalty=float(team["total_penalty"]),
-            stages=stages, rank=rank, total_teams=len(teams),
+            stages=stages, rank=rank, total_teams=len(teams), debug_unlock_all=settings_app.debug_unlock_all,
         )
 
     @staticmethod

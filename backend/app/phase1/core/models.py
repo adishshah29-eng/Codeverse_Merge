@@ -33,6 +33,7 @@ class TeamDashboardResponse(BaseModel):
     stages: List[StageStatusResponse]
     rank: Optional[int] = None
     total_teams: int = 0
+    debug_unlock_all: bool = False
 
 class LeaderboardEntry(BaseModel):
     rank: int

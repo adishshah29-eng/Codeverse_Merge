@@ -87,6 +87,8 @@ def require_stage(stage_id: int):
         team: Annotated[Team, Depends(current_team)],
         db: Session = Depends(get_db),
     ) -> Team:
+        if settings.debug_unlock_all:      # debug mode: every stage is open and replayable
+            return team
         if team.current_stage != stage_id:
             db.add(AuditEvent(
                 team_id=team.id,

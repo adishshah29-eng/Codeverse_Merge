@@ -58,7 +58,7 @@ export default function Header({
                   const st = byId[id] || { status: id === 1 ? "ACTIVE" : "LOCKED" };
                   const isCurrent = dashboard?.current_stage === id;
                   const selected = activeStageId === id;
-                  const locked = st.status === "LOCKED" && !isCurrent;
+                  const locked = st.status === "LOCKED" && !isCurrent && !dashboard?.debug_unlock_all;
                   const done = st.status === "COMPLETED";
                   const skipped = st.status === "SKIPPED";
                   let tone = "border-rule text-beige-faint";

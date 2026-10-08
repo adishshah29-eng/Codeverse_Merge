@@ -75,7 +75,7 @@ export default function App() {
           if (isFirst) return data.current_stage;
           // If active stage is already manually set to an unlocked one, keep it; else set current
           const targetObj = data.stages.find((s) => s.stage_id === prev);
-          if (targetObj && targetObj.status !== "LOCKED") return prev;
+          if (targetObj && (targetObj.status !== "LOCKED" || data.debug_unlock_all)) return prev;
           return data.current_stage;
         });
       } else {
@@ -197,6 +197,11 @@ export default function App() {
         ) : (
           /* All games, then the active stage */
           <>
+          {dashboard?.debug_unlock_all && (
+            <p className="mb-4 border-l-4 border-red bg-red-deep px-3 py-2 text-sm text-red-text">
+              <strong>Debug mode:</strong> every game is unlocked and replayable. Progress and scores are still recorded.
+            </p>
+          )}
           <StageOverview dashboard={dashboard} activeStageId={activeStageId} onSelectStage={handleStageSelect} />
           {(() => {
             const onDone = (nextStage) => {

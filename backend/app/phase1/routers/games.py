@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.phase1.core.config import settings
+from app.settings import settings as settings_app
 from app.phase1.core.database import decode_json, get_scoring_config, update_rows
 from app.phase1.core.engine import ProgressionEngine
 from app.phase1.core.models import GenericSubmissionResponse, StageSubmission
@@ -30,7 +31,7 @@ _last_submit_lock = threading.Lock()
 
 
 def _require_open(progress: Dict[str, Any], stage_id: int) -> None:
-    if progress["status"] in ("COMPLETED", "SKIPPED"):
+    if progress["status"] in ("COMPLETED", "SKIPPED") and not settings_app.debug_unlock_all:
         raise HTTPException(status_code=400, detail=f"Stage {stage_id} is already finalized ({progress['status']}).")
 
 

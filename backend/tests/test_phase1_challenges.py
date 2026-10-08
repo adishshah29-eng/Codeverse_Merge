@@ -156,3 +156,27 @@ def test_stage5_regression_completes_mission(team):
 def test_leaderboard_lists_team(team):
     lb = team.get("/api/phase1/leaderboard").json()["leaderboard"]
     assert lb and lb[0]["team_name"] == "Tester" and lb[0]["completed_stages_count"] == 10
+
+
+def test_debug_unlock_all_opens_every_stage_in_both_phases(client):
+    from app.settings import settings
+
+    admin = client.post("/api/auth/admin-login", json={"username": "organizer", "password": "organizer-password-123"})
+    assert admin.status_code == 200
+    client.post("/api/admin/teams", json={"code": "T2", "name": "Debugger", "email": "d@example.com", "password": "password123"})
+    client.cookies.clear()
+    assert client.post("/api/auth/login", json={"email": "d@example.com", "password": "password123"}).status_code == 200
+
+    assert client.get("/api/phase1/games/8/brief").status_code == 403          # normal rules: locked
+    settings.debug_unlock_all = True
+    try:
+        d = client.get("/api/phase1/progress/dashboard").json()
+        assert d["debug_unlock_all"] is True
+        assert client.get("/api/phase1/games/8/brief").status_code == 200       # Arena stage, out of order
+        assert client.get("/api/phase1/games/4/dataset").status_code == 200     # Heist stage, out of order
+        assert client.get("/api/phase1/progress/dashboard").json()["current_stage"] == 1   # progress not dragged around
+        stages = client.get("/api/stages").json()["stages"]
+        assert stages and all(s["debug_unlock"] and s["status"] != "locked" for s in stages)
+    finally:
+        settings.debug_unlock_all = False
+    assert client.get("/api/phase1/games/9/brief").status_code == 403           # back to normal when switched off
