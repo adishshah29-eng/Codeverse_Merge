@@ -115,7 +115,8 @@ def baseline_seconds() -> float:
             source = read_text(problem_dir(PROBLEM) / "handout" / "shortener.py")
             run, payload = run_with_marker(_runner(), _handout_files(source), timeout=300)
             if not payload or not payload.get("load"):
-                raise RuntimeError("Could not measure the URL shortener baseline: " + failure_message(run, 300))
+                reason = (payload or {}).get("error") or failure_message(run, 300)
+                raise RuntimeError("Could not measure the URL shortener baseline: " + reason.strip()[-600:])
             _baseline_seconds = float(payload["load"]["total_seconds"])
     return _baseline_seconds
 
@@ -131,7 +132,12 @@ def grade(files: Dict[str, str], answers: Dict[str, str]) -> Dict[str, Any]:
     if "shortener.py" not in cleaned:
         return result([], "Submit your shortener.py.", valid=False)
 
-    baseline = baseline_seconds()
+    try:
+        baseline = baseline_seconds()
+    except RuntimeError as exc:      # server-side setup problem (e.g. pytest/httpx missing) — not the team's fault
+        out = result([], f"The grader isn't set up on this server yet. Tell the organizers: {exc}", valid=False)
+        out["retry"] = True
+        return out
     run, payload = run_with_marker(_runner(), _handout_files(cleaned["shortener.py"]), TIMEOUT)
     if payload is None:
         return run_failure(run, TIMEOUT)
