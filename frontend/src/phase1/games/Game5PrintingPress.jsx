@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import "../../shared/monacoSetup";
 import { 
   Play, Cpu, Database, BarChart3, CheckCircle, AlertCircle, 
   Sparkles, Award, Code2, LineChart

@@ -85,12 +85,23 @@ def _limits(timeout_seconds: int):
         return None
     memory = settings.code_exec_memory_mb * 1024 * 1024
 
+    wanted = [
+        (resource.RLIMIT_CPU, (timeout_seconds + 1, timeout_seconds + 2)),
+        (resource.RLIMIT_FSIZE, (64 * 1024 * 1024, 64 * 1024 * 1024)),
+        (resource.RLIMIT_NOFILE, (256, 256)),
+        (resource.RLIMIT_CORE, (0, 0)),
+    ]
+    # macOS rejects RLIMIT_AS (and can fail on others); never let a limit that
+    # the host does not support abort the child before it starts.
+    if sys.platform != "darwin":
+        wanted.append((resource.RLIMIT_AS, (memory, memory)))
+
     def apply() -> None:
-        resource.setrlimit(resource.RLIMIT_CPU, (timeout_seconds + 1, timeout_seconds + 2))
-        resource.setrlimit(resource.RLIMIT_AS, (memory, memory))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (64 * 1024 * 1024, 64 * 1024 * 1024))
-        resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        for kind, value in wanted:
+            try:
+                resource.setrlimit(kind, value)
+            except (ValueError, OSError):
+                pass
 
     return apply
 

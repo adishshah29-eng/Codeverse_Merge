@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import "../../shared/monacoSetup";
 import { 
   Play, ShieldAlert, CheckCircle, AlertCircle, RefreshCw, 
   Terminal, Code2, Cpu, Bug, ChevronRight
