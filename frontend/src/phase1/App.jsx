@@ -10,6 +10,7 @@ import Game3HiddenBlueprint from "./games/Game3HiddenBlueprint";
 import Game4MintMap from "./games/Game4MintMap";
 import Game5PrintingPress from "./games/Game5PrintingPress";
 import ChallengeStage from "./games/ChallengeStage";
+import StageOverview from "./components/StageOverview";
 
 // Stages 1-5: Royal Mint Heist (original games). Stages 6-10: Challenge Arena (generic challenge screen).
 const TOTAL_STAGES = 10;
@@ -194,8 +195,10 @@ export default function App() {
             </div>
           </div>
         ) : (
-          /* Render the active stage */
-          (() => {
+          /* All games, then the active stage */
+          <>
+          <StageOverview dashboard={dashboard} activeStageId={activeStageId} onSelectStage={handleStageSelect} />
+          {(() => {
             const onDone = (nextStage) => {
               fetchDashboard();
               if (nextStage) setActiveStageId(nextStage);
@@ -206,7 +209,8 @@ export default function App() {
             ) : (
               <ChallengeStage key={activeStageId} stageId={activeStageId} dashboard={dashboard} onRefresh={fetchDashboard} onStageComplete={onDone} />
             );
-          })()
+          })()}
+          </>
         )}
 
       </main>
