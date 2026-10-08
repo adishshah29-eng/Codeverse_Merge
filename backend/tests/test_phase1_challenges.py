@@ -195,3 +195,22 @@ def test_phase1_unlock_all_setting(client):
         assert client.get("/api/phase1/games/3/ping").status_code == 200
     finally:
         p1.UNLOCK_ALL = False
+
+
+def test_team_created_before_arena_stages_gets_rows_backfilled(client):
+    """A team with only stage 1-5 rows (registered when Phase 1 had 5 stages) must still open stages 6-10."""
+    from app.phase1.core.database import delete_rows, select_one, select_rows
+    from app.phase1.core.config import settings as p1
+
+    client.cookies.clear()
+    assert client.post("/api/auth/login", json={"email": "d@example.com", "password": "password123"}).status_code == 200
+    team = select_one("p1_teams", {"name": "Debugger"})
+    for stage in range(6, 11):
+        delete_rows("p1_stage_progress", {"team_id": team["id"], "stage_id": stage})
+    assert len(select_rows("p1_stage_progress", {"team_id": team["id"]})) == 5
+    p1.UNLOCK_ALL = True
+    try:
+        assert client.get("/api/phase1/games/7/brief").status_code == 200
+        assert len(select_rows("p1_stage_progress", {"team_id": team["id"]})) == 10
+    finally:
+        p1.UNLOCK_ALL = False

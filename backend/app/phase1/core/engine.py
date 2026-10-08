@@ -34,6 +34,7 @@ class ProgressionEngine:
         if team:
             if not team["is_active"]:
                 raise HTTPException(status_code=403, detail="Team has been deactivated by administrator.")
+            ProgressionEngine.ensure_stage_rows(team)
             return team
 
         now = datetime.now(timezone.utc).isoformat()
@@ -73,6 +74,28 @@ class ProgressionEngine:
         get_store().table("p1_stage_progress").insert(stages).execute()
         log_audit("TEAM_REGISTERED", {"team_name": name.strip(), "core_team_id": core_team_id}, team_id)
         return team
+
+    @staticmethod
+    def ensure_stage_rows(team: Dict[str, Any]) -> None:
+        """Create progress rows for any stage a team doesn't have yet.
+
+        Teams registered before stages were added (e.g. when Phase 1 had 5 stages) only have rows for those, which
+        made the newer stages fail with "Stage progress not found". Missing rows start LOCKED, except the team's
+        current stage, which starts ACTIVE.
+        """
+        have = {row["stage_id"] for row in select_rows("p1_stage_progress", {"team_id": team["id"]})}
+        missing = [n for n in range(1, settings.TOTAL_STAGES + 1) if n not in have]
+        if not missing:
+            return
+        now = datetime.now(timezone.utc).isoformat()
+        rows = [{
+            "id": str(uuid.uuid4()), "team_id": team["id"], "stage_id": n,
+            "status": "ACTIVE" if n == team["current_stage"] else "LOCKED",
+            "score": 0.0, "started_at": now if n == team["current_stage"] else None, "completed_at": None,
+            "attempts_count": 0, "wrong_attempts": 0, "hints_used": [], "penalty_points": 0.0, "metadata": {},
+        } for n in missing]
+        get_store().table("p1_stage_progress").insert(rows).execute()
+        log_audit("STAGE_ROWS_BACKFILLED", {"stages": missing}, team["id"])
 
     @staticmethod
     def get_team_by_id(team_id: str) -> Dict[str, Any]:
