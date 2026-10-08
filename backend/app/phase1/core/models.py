@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 
 class HintRequest(BaseModel):
@@ -54,32 +54,27 @@ class LeaderboardResponse(BaseModel):
 IdempotencyKey = Field(..., min_length=1, max_length=128)
 MAX_CODE_CHARS = 100_000
 
-class Game1Submission(BaseModel):
-    idempotency_key: str = IdempotencyKey
-    final_code: str = Field(..., max_length=32)
-    extracted_door: Optional[int] = None
-    extracted_witness: Optional[int] = None
-    extracted_metal: Optional[int] = None
-    shift: Optional[int] = None
+class StageSubmission(BaseModel):
+    """One submission for any Phase 1 stage.
 
-class Game2Submission(BaseModel):
+    files   — source files (path -> text), e.g. {"shortener.py": "..."} or {"app/crud.py": "..."}
+    answers — named text fields, e.g. {"password": "...", "note": "..."}
+    """
     idempotency_key: str = IdempotencyKey
-    challenge_id: str = Field(..., max_length=64)
-    code: str = Field(..., max_length=MAX_CODE_CHARS)
-    time_spent_seconds: Optional[int] = 0  # ignored: elapsed time is computed server-side
+    files: Dict[str, str] = Field(default_factory=dict)
+    answers: Dict[str, str] = Field(default_factory=dict)
 
-class Game3Submission(BaseModel):
-    idempotency_key: str = IdempotencyKey
-    extraction_code: str = Field(..., max_length=64)
-    blueprint_fragment: Optional[str] = Field(None, max_length=64)
-
-class Game4Submission(BaseModel):
-    idempotency_key: str = IdempotencyKey
-    route: List[int] = Field(..., max_length=64)
-
-class Game5Submission(BaseModel):
-    idempotency_key: str = IdempotencyKey
-    code: str = Field(..., max_length=MAX_CODE_CHARS)
+    @model_validator(mode="after")
+    def _limits(self):
+        if len(self.files) > 20:
+            raise ValueError("Too many files (max 20).")
+        if any(len(path) > 120 or len(text) > MAX_CODE_CHARS for path, text in self.files.items()):
+            raise ValueError("A file is too large or its path is too long.")
+        if sum(len(text) for text in self.files.values()) > 3 * MAX_CODE_CHARS:
+            raise ValueError("Submission is too large.")
+        if len(self.answers) > 20 or any(len(key) > 40 or len(value) > 4000 for key, value in self.answers.items()):
+            raise ValueError("An answer field is too long.")
+        return self
 
 class GenericSubmissionResponse(BaseModel):
     success: bool

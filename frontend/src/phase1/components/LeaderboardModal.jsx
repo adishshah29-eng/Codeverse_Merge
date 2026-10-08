@@ -42,7 +42,7 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
-                Royal Mint Tournament Leaderboard
+                Phase 1 Leaderboard
               </h2>
               <p className="text-xs text-gray-400 font-mono">
                 Live Server Rankings // Auto-refreshes every 8s

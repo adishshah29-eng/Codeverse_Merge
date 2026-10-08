@@ -22,3 +22,8 @@ pandas==2.2.3
 numpy==2.2.5
 scikit-learn==1.6.1
 matplotlib==3.10.1
+
+# Phase 1 grading: the sandboxed graders run pytest (URL shortener + TODO bug hunt)
+# against team code, and the API tests use httpx's TestClient.
+pytest==8.3.5
+httpx==0.28.1

@@ -49,12 +49,12 @@ export default function Header({
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#d4af37] to-[#8c701b] p-0.5 shadow-lg shadow-[#d4af37]/20 flex items-center justify-center">
-              <span className="font-['Impact'] text-lg text-black tracking-wider">RM</span>
+              <span className="font-['Impact'] text-lg text-black tracking-wider">C1</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-sm tracking-wide text-white font-mono uppercase">
-                  Royal Mint Heist
+                  Challenge Arena
                 </h1>
                 <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-[#e50914]/20 text-[#e50914] border border-[#e50914]/30">
                   Phase 1

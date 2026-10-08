@@ -4,11 +4,7 @@ import TeamDashboardModal from "./components/TeamDashboardModal";
 import LeaderboardModal from "./components/LeaderboardModal";
 import AdminPortal from "./components/AdminPortal";
 
-import Game1VaultBreach from "./games/Game1VaultBreach";
-import Game2AlarmSystem from "./games/Game2AlarmSystem";
-import Game3HiddenBlueprint from "./games/Game3HiddenBlueprint";
-import Game4MintMap from "./games/Game4MintMap";
-import Game5PrintingPress from "./games/Game5PrintingPress";
+import ChallengeStage from "./games/ChallengeStage";
 
 import { authApi, progressApi } from "./api";
 import { Trophy, CheckCircle2, ShieldCheck, Flame, ArrowRight } from "lucide-react";
@@ -122,7 +118,7 @@ export default function App() {
         ) : loading ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 font-mono text-sm text-[#d4af37]">
             <div className="w-12 h-12 rounded-full border-2 border-[#d4af37] border-t-transparent animate-spin" />
-            <p>Syncing with Royal Mint Security Kernel...</p>
+            <p>Syncing with the Challenge Arena...</p>
           </div>
         ) : isMissionComplete ? (
           /* Mission Complete Victory Screen */
@@ -133,13 +129,13 @@ export default function App() {
 
             <div className="space-y-2">
               <span className="text-xs font-mono text-[#d4af37] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/30">
-                OPERATION ACCOMPLISHED // EL PLAN FINALIZADO
+                ALL FIVE CHALLENGES COMPLETE
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                Heist Mastermind Status Achieved
+                Phase 1 Complete
               </h2>
               <p className="text-sm text-gray-300 font-mono max-w-lg mx-auto">
-                Operative team <strong className="text-[#d4af37]">{team?.name}</strong> has successfully completed all 5 stages of the Royal Mint Infiltration Challenge!
+                Operative team <strong className="text-[#d4af37]">{team?.name}</strong> has finished all 5 Phase 1 challenges: optimization, debugging, reverse engineering, parsing and ML diagnosis.
               </p>
             </div>
 
@@ -178,62 +174,17 @@ export default function App() {
             </div>
           </div>
         ) : (
-          /* Render Active Game Canvas */
-          <div>
-            {activeStageId === 1 && (
-              <Game1VaultBreach
-                onStageComplete={(nextStage) => {
-                  fetchDashboard();
-                  setActiveStageId(nextStage);
-                }}
-                dashboard={dashboard}
-                onRefresh={fetchDashboard}
-              />
-            )}
-
-            {activeStageId === 2 && (
-              <Game2AlarmSystem
-                onStageComplete={(nextStage) => {
-                  fetchDashboard();
-                  setActiveStageId(nextStage);
-                }}
-                dashboard={dashboard}
-                onRefresh={fetchDashboard}
-              />
-            )}
-
-            {activeStageId === 3 && (
-              <Game3HiddenBlueprint
-                onStageComplete={(nextStage) => {
-                  fetchDashboard();
-                  setActiveStageId(nextStage);
-                }}
-                dashboard={dashboard}
-                onRefresh={fetchDashboard}
-              />
-            )}
-
-            {activeStageId === 4 && (
-              <Game4MintMap
-                onStageComplete={(nextStage) => {
-                  fetchDashboard();
-                  setActiveStageId(nextStage);
-                }}
-                dashboard={dashboard}
-                onRefresh={fetchDashboard}
-              />
-            )}
-
-            {activeStageId === 5 && (
-              <Game5PrintingPress
-                onStageComplete={() => {
-                  fetchDashboard();
-                }}
-                dashboard={dashboard}
-                onRefresh={fetchDashboard}
-              />
-            )}
-          </div>
+          /* Render Active Challenge */
+          <ChallengeStage
+            key={activeStageId}
+            stageId={activeStageId}
+            dashboard={dashboard}
+            onRefresh={fetchDashboard}
+            onStageComplete={(nextStage) => {
+              fetchDashboard();
+              if (nextStage) setActiveStageId(nextStage);
+            }}
+          />
         )}
 
       </main>
@@ -260,7 +211,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-[#23304d] py-3 px-6 text-center text-xs font-mono text-gray-500">
-        CODEVERSE 2.0 &bull; Royal Mint Heist Unified Challenge Platform &bull; FastAPI + React.js + SQLite
+        CODEVERSE 2.0 &bull; Phase 1 Challenge Arena &bull; FastAPI + React.js + SQLite
       </footer>
 
     </div>

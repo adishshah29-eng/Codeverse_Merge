@@ -5,77 +5,39 @@ from app.settings import BACKEND_DIR
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "CODEVERSE 2.0 — Royal Mint Heist Unified Engine"
+    APP_NAME: str = "CODEVERSE 2.0 — Phase 1 Challenge Arena"
 
-    # Stage IDs & Names
+    # Stage IDs & Names (competition/ has the handout, tests and answer key for each)
     TOTAL_STAGES: int = 5
     STAGE_NAMES: Dict[int, str] = {
-        1: "Vault Breach (Logic/Cryptography)",
-        2: "Alarm System (Debugging)",
-        3: "Hidden Blueprint (Web Investigation)",
-        4: "The Leak + Mint Map (Data/Algorithms)",
-        5: "Printing Press (Machine Learning)"
+        1: "URL Shortener (Systems / Optimization)",
+        2: "TODO API Bug Hunt (Debugging)",
+        3: "CTF Binary (Security / Reversing)",
+        4: "Spreadsheet Engine (Parsing / Graphs)",
+        5: "Linear Regression (ML / Diagnosis)",
     }
-    
+
     # Skip Penalty (configurable)
     SKIP_AWARD_POINTS: float = 0.0 # Score awarded for skipped game
     SKIP_PENALTY_DEDUCTION: float = 0.0 # Extra deduction from total score if configured
-    
-    # Configurable Scoring Rules (Max score for ANY game is strictly 10.0 points)
+
+    # Configurable Scoring Rules (Max score for ANY game is strictly 10.0 points).
+    # Each stage grader awards 0-10 raw points; a team's score is its best raw grade minus
+    # hint penalties (by hint index) and wrong_attempt_penalty per unusable/wrong submission.
+    # duration_seconds is the suggested time box shown in the UI (not enforced).
     MAX_SCORE_PER_GAME: float = 10.0
-    
+
     SCORING_CONFIG: Dict[str, Any] = {
-        "game_1": {
-            "type": "hybrid", # time + attempts
-            "max_score": 10.0,
-            "duration_seconds": 900,
-            "min_time_factor": 0.6, # min 60% of base if solved within time
-            "wrong_attempt_penalty": 0.5, # 0.5 pts deduction per wrong attempt
-            "hint_penalties": [0.5, 1.0, 1.5], # points deduction per hint tier
-            "speed_bonus_threshold": 300, # seconds elapsed for speed bonus
-            "speed_bonus_points": 0.5,
-        },
-        "game_2": {
-            "type": "time_based",
-            "max_score": 10.0,
-            "duration_seconds": 900,
-            "fast_solve_seconds": 120, # <= 2 mins gives 10.0 points
-            "min_completion_points": 1.0,
-            "wrong_attempt_penalty": 0.25,
-            "hint_penalties": [0.5, 1.0],
-        },
-        "game_3": {
-            "type": "hybrid",
-            "max_score": 10.0,
-            "duration_seconds": 600,
-            "min_time_factor": 0.7,
-            "wrong_attempt_penalty": 0.5,
-            "hint_penalties": [0.5, 1.0],
-        },
-        "game_4": {
-            "type": "approach_quality", # Path efficiency: Risk + 2 * Time
-            "max_score": 10.0,
-            "optimal_cost": 156.0, # Baseline known lowest cost path
-            "max_acceptable_cost": 300.0,
-            "min_valid_points": 4.0,
-            "wrong_attempt_penalty": 0.2,
-            "hint_penalties": [0.5],
-        },
-        "game_5": {
-            "type": "quality_accuracy", # ML Regression test error %
-            "max_score": 10.0,
-            "error_brackets": [
-                {"max_error_pct": 2.0, "points": 10.0},
-                {"max_error_pct": 5.0, "points": 9.5},
-                {"max_error_pct": 10.0, "points": 8.5},
-                {"max_error_pct": 15.0, "points": 7.5},
-                {"max_error_pct": 20.0, "points": 6.0},
-                {"max_error_pct": 30.0, "points": 4.0},
-                {"max_error_pct": 50.0, "points": 2.0},
-            ],
-            "wrong_attempt_penalty": 0.1,
-            "hint_penalties": [0.5, 1.0],
-        }
+        "game_1": {"max_score": 10.0, "duration_seconds": 3600, "wrong_attempt_penalty": 0.0,
+                   "hint_penalties": [0.5, 1.0, 1.5]},
+        "game_2": {"max_score": 10.0, "duration_seconds": 3600, "wrong_attempt_penalty": 0.0,
+                   "hint_penalties": [0.5, 1.0, 1.5]},
+        "game_3": {"max_score": 10.0, "duration_seconds": 3600, "wrong_attempt_penalty": 0.25,
+                   "hint_penalties": [0.5, 1.0, 1.5]},
+        "game_4": {"max_score": 10.0, "duration_seconds": 5400, "wrong_attempt_penalty": 0.0,
+                   "hint_penalties": [0.5, 1.0, 1.5]},
+        "game_5": {"max_score": 10.0, "duration_seconds": 5400, "wrong_attempt_penalty": 0.0,
+                   "hint_penalties": [0.5, 1.0, 1.5]},
     }
 
     # Only PHASE1_-prefixed variables (e.g. PHASE1_SKIP_AWARD_POINTS) override

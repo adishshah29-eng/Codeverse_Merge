@@ -11,8 +11,8 @@ const PHASES = [
     id: 1,
     href: "/phase1/",
     kicker: "PHASE 01",
-    title: "Royal Mint Heist",
-    blurb: "Vault breach, alarm debugging, hidden blueprint, mint map routing and the printing-press ML model.",
+    title: "Challenge Arena",
+    blurb: "Five engineering challenges: speed up a URL shortener, bust the TODO-API bugs, crack a binary, build a spreadsheet engine and diagnose a lying regression model.",
     adminBlurb: "Phase 1 team progress, scoring rules, resets and audit log.",
   },
   {

@@ -42,40 +42,12 @@ export const progressApi = {
   unlockHint: (stageId, hintIndex) => apiRequest("/progress/hint", "POST", { stage_id: stageId, hint_index: hintIndex }),
 };
 
-// ── Game 1 API (Vault Breach) ──
-export const game1Api = {
-  getChallenge: () => apiRequest("/games/1/challenge"),
-  submit: (payload) => apiRequest("/games/1/submit", "POST", payload),
-};
-
-// ── Game 2 API (Alarm System) ──
-export const game2Api = {
-  getChallenges: () => apiRequest("/games/2/challenges"),
-  runCode: (code) => apiRequest("/games/2/run", "POST", { code }),
-  submit: (payload) => apiRequest("/games/2/submit", "POST", payload),
-};
-
-// ── Game 3 API (Hidden Blueprint) ──
-export const game3Api = {
-  ping: () => apiRequest("/games/3/ping"),
-  manifest: () => apiRequest("/games/3/manifest"),
-  press: () => apiRequest("/games/3/press"),
-  queryBlueprint: (fragment) => apiRequest(`/games/3/blueprint?fragment=${encodeURIComponent(fragment)}`),
-  submit: (payload) => apiRequest("/games/3/submit", "POST", payload),
-};
-
-// ── Game 4 API (Mint Map) ──
-export const game4Api = {
-  getDataset: () => apiRequest("/games/4/dataset"),
-  evaluateRoute: (route) => apiRequest("/games/4/evaluate", "POST", { route }),
-  submit: (payload) => apiRequest("/games/4/submit", "POST", payload),
-};
-
-// ── Game 5 API (Printing Press ML) ──
-export const game5Api = {
-  getInfo: () => apiRequest("/games/5/info"),
-  runModel: (code) => apiRequest("/games/5/run", "POST", { code }),
-  submit: (payload) => apiRequest("/games/5/submit", "POST", payload),
+// ── Challenge stages (same shape for all five) ──
+export const stageApi = {
+  getBrief: (stageId) => apiRequest(`/games/${stageId}/brief`),
+  handoutUrl: (stageId) => `${API_BASE}/games/${stageId}/handout`,
+  submit: (stageId, payload) => apiRequest(`/games/${stageId}/submit`, "POST", payload),
+  finalize: (stageId) => apiRequest(`/games/${stageId}/finalize`, "POST"),
 };
 
 // ── Leaderboard API ──

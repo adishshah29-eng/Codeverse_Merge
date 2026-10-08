@@ -15,6 +15,7 @@ from app.phase1.core.database import (
     update_rows,
     get_scoring_config,
 )
+from app.phase1.games.registry import hint_texts
 from app.phase1.core.models import LeaderboardEntry, LeaderboardResponse, StageStatusResponse, TeamDashboardResponse
 
 
@@ -199,9 +200,12 @@ class ProgressionEngine:
     @staticmethod
     def unlock_hint(team_id: str, stage_id: int, hint_index: int) -> Dict[str, Any]:
         progress = ProgressionEngine.verify_stage_access(team_id, stage_id)
+        texts = hint_texts(stage_id)
+        if not 0 <= hint_index < len(texts):
+            raise HTTPException(status_code=404, detail="No such hint for this stage.")
         hints = decode_json(progress["hints_used"], [])
         if hint_index in hints:
-            return {"success": True, "hint_index": hint_index, "already_unlocked": True}
+            return {"success": True, "hint_index": hint_index, "already_unlocked": True, "text": texts[hint_index]}
         hints.append(hint_index)
         hints.sort()
         config = get_scoring_config().get(f"game_{stage_id}", {})
@@ -211,8 +215,26 @@ class ProgressionEngine:
             "hints_used": hints,
             "penalty_points": float(progress["penalty_points"] or 0.0) + penalty,
         })
+        ProgressionEngine.refresh_stage_score(team_id, stage_id)
         log_audit("HINT_UNLOCKED", {"stage_id": stage_id, "hint_index": hint_index, "penalty": penalty}, team_id)
-        return {"success": True, "hint_index": hint_index, "penalty": penalty, "hints_used": hints}
+        return {"success": True, "hint_index": hint_index, "penalty": penalty, "hints_used": hints, "text": texts[hint_index]}
+
+    @staticmethod
+    def refresh_stage_score(team_id: str, stage_id: int) -> float:
+        """Recompute an ACTIVE stage's running score from its best raw grade, hints and wrong attempts.
+
+        Challenges award partial credit, so the leaderboard shows each team's current best while a stage is open.
+        """
+        from app.phase1.core.scoring import net_stage_score
+        progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
+        if not progress or progress["status"] != "ACTIVE":
+            return float(progress["score"]) if progress else 0.0
+        meta = decode_json(progress["metadata"], {})
+        net = net_stage_score(stage_id, float(meta.get("best_raw", 0.0)), int(progress["wrong_attempts"]),
+                              decode_json(progress["hints_used"], []))
+        update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {"score": net["score"]})
+        ProgressionEngine._recalculate_team_totals(team_id)
+        return net["score"]
 
     @staticmethod
     def get_team_dashboard(team_id: str) -> TeamDashboardResponse:

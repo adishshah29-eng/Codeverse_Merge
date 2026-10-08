@@ -1,454 +1,183 @@
-import json
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+"""Phase 1 challenge endpoints (all five stages share one shape).
 
-from app.phase1.core.database import decode_json
+    GET  /games/{n}/brief      stage description, submission form spec, unlocked hints, current best
+    GET  /games/{n}/handout    the team's zip download for the stage
+    POST /games/{n}/submit     grade a submission (partial credit; best raw grade is kept)
+    POST /games/{n}/finalize   lock in the current best score and move on to the next stage
+"""
+import logging
+import threading
+import time
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+
+from app.phase1.core.config import settings
+from app.phase1.core.database import decode_json, get_scoring_config, update_rows
 from app.phase1.core.engine import ProgressionEngine
+from app.phase1.core.models import GenericSubmissionResponse, StageSubmission
+from app.phase1.core.scoring import net_stage_score
 from app.phase1.deps import phase1_team_id
-from app.phase1.core.models import (
-    Game1Submission, Game2Submission, Game3Submission, Game4Submission, Game5Submission,
-    GenericSubmissionResponse, MAX_CODE_CHARS
-)
-from app.phase1.core.scoring import (
-    calculate_game1_score, calculate_game2_score, calculate_game3_score,
-    calculate_game4_score, calculate_game5_score
-)
-from app.phase1.games.g1_vault_breach import load_public_challenge, verify_vault_solution
-from app.phase1.games.g2_alarm_system import get_challenges_list, execute_python_code, verify_alarm_solution
-from app.phase1.games.g3_hidden_blueprint import (
-    get_archive_ping, get_archive_manifest, get_archive_press,
-    verify_blueprint_query, verify_blueprint_submission
-)
-from app.phase1.games.g4_mint_map import get_map_dataset, evaluate_mint_route
-from app.phase1.games.g5_printing_press import get_dataset_info, evaluate_ml_model
+from app.phase1.games.common import handout_zip
+from app.phase1.games.registry import get_stage
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/games", tags=["Games"])
 
-# ── GAME 1: VAULT BREACH ───────────────────────────────────────────────────────
+SUBMIT_COOLDOWN_SECONDS = 4.0
+_last_submit: Dict[tuple, float] = {}
+_last_submit_lock = threading.Lock()
 
-@router.get("/1/challenge")
-def get_game1_challenge(team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 1)
-    return load_public_challenge()
 
-@router.post("/1/submit", response_model=GenericSubmissionResponse)
-def submit_game1(payload: Game1Submission, team_id: str = Depends(phase1_team_id)):
-    progress = ProgressionEngine.verify_stage_access(team_id, 1)
-    
-    # Idempotency check
-    existing = ProgressionEngine.check_idempotency(team_id, 1, payload.idempotency_key)
-    if existing:
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=1,
-            passed=bool(existing["passed"]),
-            score_awarded=existing["score_awarded"],
-            total_stage_score=progress["score"],
-            message="Idempotent: Returning previously recorded submission result."
-        )
+def _require_open(progress: Dict[str, Any], stage_id: int) -> None:
+    if progress["status"] in ("COMPLETED", "SKIPPED"):
+        raise HTTPException(status_code=400, detail=f"Stage {stage_id} is already finalized ({progress['status']}).")
 
-    # Calculate elapsed seconds from started_at
-    elapsed = 120
-    if progress["started_at"]:
-        try:
-            s_dt = datetime.fromisoformat(progress["started_at"])
-            elapsed = int((datetime.now(timezone.utc) - s_dt).total_seconds())
-        except Exception:
-            pass
 
-    verif = verify_vault_solution(
-        payload.final_code,
-        payload.extracted_door,
-        payload.extracted_witness,
-        payload.extracted_metal,
-        payload.shift
-    )
+def _public_meta(stage) -> Dict[str, Any]:
+    meta = stage.META
+    return {
+        "stage_id": meta["id"],
+        "title": meta["title"],
+        "domain": meta["domain"],
+        "difficulty": meta["difficulty"],
+        "brief": meta["brief"],
+        "submit": meta["submit"],
+        "hints_total": len(meta.get("hints", [])),
+        "hint_penalties": get_scoring_config().get(f"game_{meta['id']}", {}).get("hint_penalties", [0.5, 1.0, 1.5]),
+        "wrong_attempt_penalty": get_scoring_config().get(f"game_{meta['id']}", {}).get("wrong_attempt_penalty", 0.0),
+        "handout_filename": f"{meta['handout']}.zip",
+    }
 
+
+@router.get("/{stage_id}/brief")
+def get_brief(stage_id: int, team_id: str = Depends(phase1_team_id)):
+    stage = get_stage(stage_id)
+    progress = ProgressionEngine.verify_stage_access(team_id, stage_id)
+    metadata = decode_json(progress["metadata"], {})
     hints_used = decode_json(progress["hints_used"], [])
-    wrong_attempts = progress["wrong_attempts"]
-    
-    score_res = calculate_game1_score(
-        elapsed_seconds=elapsed,
-        wrong_attempts=wrong_attempts + (0 if verif["passed"] else 1),
-        hints_used=hints_used,
-        extracted_correct=verif["passed"]
+    hints = stage.META.get("hints", [])
+    return {
+        **_public_meta(stage),
+        "status": progress["status"],
+        "score": float(progress["score"]),
+        "best_raw": float(metadata.get("best_raw", 0.0)),
+        "last_checks": metadata.get("best_checks", []),
+        "last_message": metadata.get("best_message", ""),
+        "attempts_count": progress["attempts_count"],
+        "wrong_attempts": progress["wrong_attempts"],
+        "unlocked_hints": [{"index": i, "text": hints[i]} for i in hints_used if 0 <= i < len(hints)],
+    }
+
+
+@router.get("/{stage_id}/handout")
+def download_handout(stage_id: int, team_id: str = Depends(phase1_team_id)):
+    stage = get_stage(stage_id)
+    ProgressionEngine.verify_stage_access(team_id, stage_id)
+    try:
+        data = handout_zip(stage.META["handout"])
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Handout is not available. Contact the organizers.")
+    return Response(content=data, media_type="application/zip", headers={
+        "Content-Disposition": f'attachment; filename="{stage.META["handout"]}.zip"',
+        "Cache-Control": "private, no-store",
+    })
+
+
+def _response(stage_id: int, *, success: bool, perfect: bool, awarded: float, total: float, message: str,
+              feedback: Optional[Dict[str, Any]], next_stage: Optional[int] = None, complete: bool = False):
+    return GenericSubmissionResponse(
+        success=success, stage_id=stage_id, passed=perfect, score_awarded=awarded, total_stage_score=total,
+        message=message, feedback=feedback, next_stage=next_stage, mission_complete=complete,
     )
-    
-    score_awarded = score_res["score"]
-    
-    ProgressionEngine.record_submission_attempt(
-        team_id=team_id,
-        stage_id=1,
-        idempotency_key=payload.idempotency_key,
-        payload=payload.dict(),
-        passed=verif["passed"],
-        score_awarded=score_awarded,
-        feedback=verif["message"]
-    )
-    
-    if verif["passed"]:
-        ProgressionEngine.complete_stage(
-            team_id=team_id,
-            stage_id=1,
-            final_score=score_awarded,
-            metadata={"elapsed_seconds": elapsed, "breakdown": score_res["breakdown"]}
-        )
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=1,
-            passed=True,
-            score_awarded=score_awarded,
-            total_stage_score=score_awarded,
-            message=verif["message"],
-            feedback=score_res["breakdown"],
-            next_stage=2
-        )
-    else:
-        return GenericSubmissionResponse(
-            success=False,
-            stage_id=1,
-            passed=False,
-            score_awarded=0.0,
-            total_stage_score=progress["score"],
-            message=verif["message"],
-            feedback=verif["details"]
-        )
 
-# ── GAME 2: ALARM SYSTEM ───────────────────────────────────────────────────────
 
-@router.get("/2/challenges")
-def get_game2_challenges(team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 2)
-    return {"challenges": get_challenges_list()}
+def _next(stage_id: int) -> Optional[int]:
+    return stage_id + 1 if stage_id < settings.TOTAL_STAGES else None
 
-class CodeRunRequest(BaseModel):
-    code: str = Field(..., max_length=MAX_CODE_CHARS)
 
-@router.post("/2/run")
-def run_game2_code(payload: CodeRunRequest, team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 2)
-    return execute_python_code(payload.code)
+@router.post("/{stage_id}/submit", response_model=GenericSubmissionResponse)
+def submit(stage_id: int, payload: StageSubmission, team_id: str = Depends(phase1_team_id)):
+    stage = get_stage(stage_id)
+    progress = ProgressionEngine.verify_stage_access(team_id, stage_id)
+    _require_open(progress, stage_id)
 
-@router.post("/2/submit", response_model=GenericSubmissionResponse)
-def submit_game2(payload: Game2Submission, team_id: str = Depends(phase1_team_id)):
-    progress = ProgressionEngine.verify_stage_access(team_id, 2)
-    
-    existing = ProgressionEngine.check_idempotency(team_id, 2, payload.idempotency_key)
+    existing = ProgressionEngine.check_idempotency(team_id, stage_id, payload.idempotency_key)
     if existing:
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=2,
-            passed=bool(existing["passed"]),
-            score_awarded=existing["score_awarded"],
-            total_stage_score=progress["score"],
-            message="Idempotent: Returning previously recorded submission result."
-        )
+        return _response(stage_id, success=True, perfect=bool(existing["passed"]),
+                         awarded=existing["score_awarded"], total=float(progress["score"]),
+                         message="Idempotent: returning the previously recorded result.", feedback=None)
 
-    elapsed = 120
-    if progress["started_at"]:
-        try:
-            s_dt = datetime.fromisoformat(progress["started_at"])
-            elapsed = int((datetime.now(timezone.utc) - s_dt).total_seconds())
-        except Exception:
-            pass
+    now = time.monotonic()
+    with _last_submit_lock:
+        previous = _last_submit.get((team_id, stage_id), 0.0)
+        if now - previous < SUBMIT_COOLDOWN_SECONDS:
+            raise HTTPException(status_code=429, detail="Slow down — wait a few seconds between submissions.")
+        _last_submit[(team_id, stage_id)] = now
 
-    verif = verify_alarm_solution(payload.challenge_id, payload.code)
-    hints_used = decode_json(progress["hints_used"], [])
-    wrong_attempts = progress["wrong_attempts"]
+    try:
+        graded = stage.grade(dict(payload.files), dict(payload.answers))
+    except Exception:  # a grader bug must never cost a team points
+        logger.exception("Phase 1 grader crashed (stage %s)", stage_id)
+        with _last_submit_lock:
+            _last_submit.pop((team_id, stage_id), None)
+        raise HTTPException(status_code=500, detail="The grader hit an internal error. Your attempt was not counted — try again or tell the organizers.")
 
-    score_res = calculate_game2_score(
-        elapsed_seconds=elapsed,
-        wrong_attempts=wrong_attempts + (0 if verif["passed"] else 1),
-        hints_used=hints_used,
-        passed=verif["passed"]
-    )
-    score_awarded = score_res["score"]
+    if graded.get("retry"):   # sandbox busy / unavailable: nothing is recorded
+        with _last_submit_lock:
+            _last_submit.pop((team_id, stage_id), None)
+        raise HTTPException(status_code=503, detail=graded["message"])
 
+    valid, raw = bool(graded["valid"]), float(graded["score"])
+    metadata = decode_json(progress["metadata"], {})
+    previous_best = float(metadata.get("best_raw", 0.0))
+    if valid and raw >= previous_best:
+        metadata.update({"best_raw": raw, "best_checks": graded["checks"], "best_message": graded["message"],
+                         "best_details": graded.get("details", {})})
+    metadata["last_raw"] = raw
+    metadata["submissions"] = int(metadata.get("submissions", 0)) + 1
+
+    stored_payload = {"files": payload.files, "answers": payload.answers}
     ProgressionEngine.record_submission_attempt(
-        team_id=team_id,
-        stage_id=2,
-        idempotency_key=payload.idempotency_key,
-        payload=payload.dict(),
-        passed=verif["passed"],
-        score_awarded=score_awarded,
-        feedback=verif["message"]
+        team_id=team_id, stage_id=stage_id, idempotency_key=payload.idempotency_key,
+        payload=stored_payload, passed=valid, score_awarded=raw if valid else 0.0, feedback=graded["message"],
     )
+    update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {"metadata": metadata})
 
-    if verif["passed"]:
-        ProgressionEngine.complete_stage(
-            team_id=team_id,
-            stage_id=2,
-            final_score=score_awarded,
-            metadata={"elapsed_seconds": elapsed, "breakdown": score_res["breakdown"]}
-        )
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=2,
-            passed=True,
-            score_awarded=score_awarded,
-            total_stage_score=score_awarded,
-            message=verif["message"],
-            feedback={"stdout": verif["stdout"], "breakdown": score_res["breakdown"]},
-            next_stage=3
-        )
-    else:
-        return GenericSubmissionResponse(
-            success=False,
-            stage_id=2,
-            passed=False,
-            score_awarded=0.0,
-            total_stage_score=progress["score"],
-            message=verif["message"],
-            feedback={"stdout": verif["stdout"], "stderr": verif["stderr"]}
-        )
+    fresh = ProgressionEngine.verify_stage_access(team_id, stage_id)
+    best_raw = float(metadata.get("best_raw", 0.0))
+    net = net_stage_score(stage_id, best_raw, int(fresh["wrong_attempts"]), decode_json(fresh["hints_used"], []))
+    feedback = {
+        "checks": graded["checks"], "details": graded.get("details", {}), "raw_score": raw,
+        "best_raw": best_raw, "net_score": net["score"], "breakdown": net["breakdown"], "improved": valid and raw >= previous_best,
+    }
 
-# ── GAME 3: HIDDEN BLUEPRINT ───────────────────────────────────────────────────
+    if valid and graded["perfect"]:
+        ProgressionEngine.complete_stage(team_id, stage_id, net["score"],
+                                         metadata={**metadata, "breakdown": net["breakdown"], "completed_by": "perfect"})
+        nxt = _next(stage_id)
+        return _response(stage_id, success=True, perfect=True, awarded=raw, total=net["score"],
+                         message=graded["message"], feedback=feedback, next_stage=nxt, complete=nxt is None)
 
-@router.get("/3/ping")
-def archive_ping():
-    return get_archive_ping()
+    ProgressionEngine.refresh_stage_score(team_id, stage_id)
+    return _response(stage_id, success=valid, perfect=False, awarded=raw if valid else 0.0, total=net["score"],
+                     message=graded["message"], feedback=feedback)
 
-@router.get("/3/manifest")
-def archive_manifest():
-    return get_archive_manifest()
 
-@router.get("/3/press")
-def archive_press():
-    return get_archive_press()
-
-@router.get("/3/blueprint")
-def query_blueprint(fragment: Optional[str] = Query(None, max_length=64)):
-    return verify_blueprint_query(fragment or "")
-
-@router.post("/3/submit", response_model=GenericSubmissionResponse)
-def submit_game3(payload: Game3Submission, team_id: str = Depends(phase1_team_id)):
-    progress = ProgressionEngine.verify_stage_access(team_id, 3)
-
-    existing = ProgressionEngine.check_idempotency(team_id, 3, payload.idempotency_key)
-    if existing:
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=3,
-            passed=bool(existing["passed"]),
-            score_awarded=existing["score_awarded"],
-            total_stage_score=progress["score"],
-            message="Idempotent: Returning previously recorded submission result."
-        )
-
-    elapsed = 150
-    if progress["started_at"]:
-        try:
-            s_dt = datetime.fromisoformat(progress["started_at"])
-            elapsed = int((datetime.now(timezone.utc) - s_dt).total_seconds())
-        except Exception:
-            pass
-
-    verif = verify_blueprint_submission(payload.extraction_code, payload.blueprint_fragment)
-    hints_used = decode_json(progress["hints_used"], [])
-    wrong_attempts = progress["wrong_attempts"]
-
-    score_res = calculate_game3_score(
-        elapsed_seconds=elapsed,
-        wrong_attempts=wrong_attempts + (0 if verif["passed"] else 1),
-        hints_used=hints_used,
-        passed=verif["passed"]
-    )
-    score_awarded = score_res["score"]
-
-    ProgressionEngine.record_submission_attempt(
-        team_id=team_id,
-        stage_id=3,
-        idempotency_key=payload.idempotency_key,
-        payload=payload.dict(),
-        passed=verif["passed"],
-        score_awarded=score_awarded,
-        feedback=verif["message"]
-    )
-
-    if verif["passed"]:
-        ProgressionEngine.complete_stage(
-            team_id=team_id,
-            stage_id=3,
-            final_score=score_awarded,
-            metadata={"elapsed_seconds": elapsed, "breakdown": score_res["breakdown"]}
-        )
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=3,
-            passed=True,
-            score_awarded=score_awarded,
-            total_stage_score=score_awarded,
-            message=verif["message"],
-            feedback=score_res["breakdown"],
-            next_stage=4
-        )
-    else:
-        return GenericSubmissionResponse(
-            success=False,
-            stage_id=3,
-            passed=False,
-            score_awarded=0.0,
-            total_stage_score=progress["score"],
-            message=verif["message"],
-            feedback=verif["details"]
-        )
-
-# ── GAME 4: THE LEAK + MINT MAP ────────────────────────────────────────────────
-
-@router.get("/4/dataset")
-def get_game4_dataset(team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 4)
-    return get_map_dataset()
-
-class RouteEvaluateRequest(BaseModel):
-    route: List[int] = Field(..., max_length=64)
-
-@router.post("/4/evaluate")
-def evaluate_game4_route(payload: RouteEvaluateRequest, team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 4)
-    return evaluate_mint_route(payload.route)
-
-@router.post("/4/submit", response_model=GenericSubmissionResponse)
-def submit_game4(payload: Game4Submission, team_id: str = Depends(phase1_team_id)):
-    progress = ProgressionEngine.verify_stage_access(team_id, 4)
-
-    existing = ProgressionEngine.check_idempotency(team_id, 4, payload.idempotency_key)
-    if existing:
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=4,
-            passed=bool(existing["passed"]),
-            score_awarded=existing["score_awarded"],
-            total_stage_score=progress["score"],
-            message="Idempotent: Returning previously recorded submission result."
-        )
-
-    verif = evaluate_mint_route(payload.route)
-    hints_used = decode_json(progress["hints_used"], [])
-    wrong_attempts = progress["wrong_attempts"]
-
-    score_res = calculate_game4_score(
-        route_cost=verif.get("cost", 300.0),
-        wrong_attempts=wrong_attempts + (0 if verif["passed"] else 1),
-        hints_used=hints_used,
-        passed=verif["passed"]
-    )
-    score_awarded = score_res["score"]
-
-    ProgressionEngine.record_submission_attempt(
-        team_id=team_id,
-        stage_id=4,
-        idempotency_key=payload.idempotency_key,
-        payload=payload.dict(),
-        passed=verif["passed"],
-        score_awarded=score_awarded,
-        feedback=verif["message"]
-    )
-
-    if verif["passed"]:
-        ProgressionEngine.complete_stage(
-            team_id=team_id,
-            stage_id=4,
-            final_score=score_awarded,
-            metadata={"cost": verif.get("cost"), "breakdown": score_res["breakdown"]}
-        )
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=4,
-            passed=True,
-            score_awarded=score_awarded,
-            total_stage_score=score_awarded,
-            message=verif["message"],
-            feedback=score_res["breakdown"],
-            next_stage=5
-        )
-    else:
-        return GenericSubmissionResponse(
-            success=False,
-            stage_id=4,
-            passed=False,
-            score_awarded=0.0,
-            total_stage_score=progress["score"],
-            message=verif["message"],
-            feedback={"failures": verif.get("failures", [])}
-        )
-
-# ── GAME 5: PRINTING PRESS ML ──────────────────────────────────────────────────
-
-@router.get("/5/info")
-def get_game5_info(team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 5)
-    return get_dataset_info()
-
-@router.post("/5/run")
-def run_game5_model(payload: CodeRunRequest, team_id: str = Depends(phase1_team_id)):
-    ProgressionEngine.verify_stage_access(team_id, 5)
-    return evaluate_ml_model(payload.code)
-
-@router.post("/5/submit", response_model=GenericSubmissionResponse)
-def submit_game5(payload: Game5Submission, team_id: str = Depends(phase1_team_id)):
-    progress = ProgressionEngine.verify_stage_access(team_id, 5)
-
-    existing = ProgressionEngine.check_idempotency(team_id, 5, payload.idempotency_key)
-    if existing:
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=5,
-            passed=bool(existing["passed"]),
-            score_awarded=existing["score_awarded"],
-            total_stage_score=progress["score"],
-            message="Idempotent: Returning previously recorded submission result."
-        )
-
-    verif = evaluate_ml_model(payload.code)
-    hints_used = decode_json(progress["hints_used"], [])
-    wrong_attempts = progress["wrong_attempts"]
-
-    score_res = calculate_game5_score(
-        error_pct=verif.get("error_pct", 100.0),
-        wrong_attempts=wrong_attempts + (0 if verif["passed"] else 1),
-        hints_used=hints_used,
-        passed=verif["passed"]
-    )
-    score_awarded = score_res["score"]
-
-    ProgressionEngine.record_submission_attempt(
-        team_id=team_id,
-        stage_id=5,
-        idempotency_key=payload.idempotency_key,
-        payload={"code_length": len(payload.code)},
-        passed=verif["passed"],
-        score_awarded=score_awarded,
-        feedback=verif["message"]
-    )
-
-    if verif["passed"]:
-        ProgressionEngine.complete_stage(
-            team_id=team_id,
-            stage_id=5,
-            final_score=score_awarded,
-            metadata={"error_pct": verif.get("error_pct"), "breakdown": score_res["breakdown"]}
-        )
-        return GenericSubmissionResponse(
-            success=True,
-            stage_id=5,
-            passed=True,
-            score_awarded=score_awarded,
-            total_stage_score=score_awarded,
-            message=verif["message"],
-            feedback={"error_pct": verif.get("error_pct"), "image": verif.get("image"), "breakdown": score_res["breakdown"]},
-            next_stage=None,
-            mission_complete=True
-        )
-    else:
-        return GenericSubmissionResponse(
-            success=False,
-            stage_id=5,
-            passed=False,
-            score_awarded=0.0,
-            total_stage_score=progress["score"],
-            message=verif["message"],
-            feedback={"stdout": verif.get("stdout"), "stderr": verif.get("stderr")}
-        )
+@router.post("/{stage_id}/finalize", response_model=GenericSubmissionResponse)
+def finalize(stage_id: int, team_id: str = Depends(phase1_team_id)):
+    """Lock in the best score so far and unlock the next stage (partial credit is natural here)."""
+    get_stage(stage_id)
+    progress = ProgressionEngine.verify_stage_access(team_id, stage_id)
+    _require_open(progress, stage_id)
+    metadata = decode_json(progress["metadata"], {})
+    best_raw = float(metadata.get("best_raw", 0.0))
+    if best_raw <= 0:
+        raise HTTPException(status_code=400, detail="Nothing to lock in yet — submit something that scores, or skip the stage.")
+    net = net_stage_score(stage_id, best_raw, int(progress["wrong_attempts"]), decode_json(progress["hints_used"], []))
+    ProgressionEngine.complete_stage(team_id, stage_id, net["score"],
+                                     metadata={**metadata, "breakdown": net["breakdown"], "completed_by": "finalize"})
+    nxt = _next(stage_id)
+    return _response(stage_id, success=True, perfect=False, awarded=best_raw, total=net["score"],
+                     message=f"Stage locked in at {net['score']:.2f} / 10.", feedback={"breakdown": net["breakdown"]},
+                     next_stage=nxt, complete=nxt is None)

@@ -30,7 +30,7 @@ import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Mapping, Optional, Union
 
 from app.settings import settings
 
@@ -178,8 +178,14 @@ def run_python(
     script: str,
     timeout_seconds: int,
     data_files: Iterable[Path] = (),
+    extra_files: Optional[Mapping[str, Union[str, bytes]]] = None,
 ) -> RunResult:
-    """Execute `script` as main.py in an isolated temp dir and capture output."""
+    """Execute `script` as main.py in an isolated temp dir and capture output.
+
+    `extra_files` maps relative paths (sub-directories allowed) to contents written into
+    the working directory before the run. Paths are validated so a caller can never write
+    outside the temp directory or replace main.py.
+    """
     if not _semaphore.acquire(timeout=settings.code_exec_queue_timeout):
         return RunResult("", "Execution servers are busy. Please try again in a few seconds.", -1, busy=True)
     try:
@@ -191,6 +197,14 @@ def run_python(
             os.chmod(workdir, 0o700)
             for data_file in data_files:
                 shutil.copyfile(data_file, os.path.join(workdir, data_file.name))
+            root = os.path.realpath(workdir)
+            for rel, content in (extra_files or {}).items():
+                target = os.path.realpath(os.path.join(root, rel))
+                if not target.startswith(root + os.sep) or target == os.path.join(root, "main.py"):
+                    raise ValueError(f"Illegal sandbox file path: {rel!r}")
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, "wb") as handle:
+                    handle.write(content if isinstance(content, bytes) else content.encode("utf-8"))
             with open(os.path.join(workdir, "main.py"), "w", encoding="utf-8") as handle:
                 handle.write(script)
 

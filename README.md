@@ -4,7 +4,7 @@ One platform for both CODEVERSE competition phases:
 
 | Phase | Name | Stages | Page |
 | --- | --- | --- | --- |
-| 1 | **Royal Mint Heist** | Vault Breach · Alarm System · Hidden Blueprint · Mint Map · Printing Press | `/phase1/` |
+| 1 | **Challenge Arena** | URL Shortener · TODO API Bug Hunt · CTF Binary · Spreadsheet Engine · Linear Regression | `/phase1/` |
 | 2 | **Operación Fuga** | Money Trail · Control Server · Outrun the Police · Final Extraction (+ Black Market) | `/phase2/` |
 
 > **SQLite edition** (branch `claude/repo-work-wd3ehi-sqlite`): everything is stored in a single
@@ -62,9 +62,8 @@ This repository was created by merging
 │   │   ├── games/              # Phase 2 game engines
 │   │   └── phase1/             # Phase 1  (/api/phase1/...)
 │   │       ├── core/           #   config, SQLite store, progression, scoring
-│   │       ├── games/          #   game rules + sandbox.py (isolated code execution)
-│   │       ├── routers/        #   endpoints
-│   │       ├── data/           #   challenge data, ML datasets, private answer key
+│   │       ├── games/          #   one grader per stage (g1..g5) + sandbox.py (isolated code execution)
+│   │       ├── routers/        #   endpoints (generic brief / handout / submit / finalize per stage)
 │   │       └── deps.py         #   maps the logged-in team to its Phase 1 record
 │   ├── requirements.txt
 │   ├── gunicorn.conf.py
@@ -82,6 +81,7 @@ This repository was created by merging
 │   ├── package.json, package-lock.json, vite.config.js
 │   └── .env.example
 ├── vendor/                     # static mini-sites used by Phase 2 (market iframe, CTF pages)
+├── competition/                # Phase 1 problem set: handouts (given to teams) + organizer/ (answer keys, hidden data)
 ├── deploy/
 │   ├── nginx/codeverse.conf
 │   ├── systemd/codeverse-backend.service, codeverse-backup.{service,timer}
@@ -335,7 +335,7 @@ The database is outside the repository, so updates never touch event data.
   lock errors; server-side handling averaged 25–90 ms per request.
 * Logins are deliberately CPU-heavy (scrypt). 300 simultaneous logins take ~10 s in total; in
   practice logins are spread out.
-* Phase 1 code runs (Alarm System, Printing Press) are CPU-heavy: at most
+* Phase 1 grading runs (URL Shortener load test, TODO pytest run, spreadsheet and regression graders) are CPU-heavy: at most
   `GUNICORN_WORKERS × CODE_EXEC_MAX_CONCURRENT` run at once (default 5 × 2 = 10); extra
   requests wait up to `CODE_EXEC_QUEUE_TIMEOUT` seconds and then get a "busy, try again" message.
 * Keep the database on local disk (not NFS/network storage) — SQLite locking requires it.

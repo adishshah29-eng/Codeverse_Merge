@@ -317,7 +317,7 @@ for router in (stages.router, hints.router, money_trail.router, ctf.router,
                police.router, extraction.router, market.router):
     app.include_router(router, dependencies=phase2)
 
-# ── Phase 1 (Royal Mint Heist) — served at /api/phase1/* ─────────────────────
+# ── Phase 1 (Challenge Arena) — served at /api/phase1/* ─────────────────────
 phase1 = [Depends(require_phase(1))]
 app.include_router(p1_progression.router, prefix="/api/phase1", dependencies=phase1)
 app.include_router(p1_games.router, prefix="/api/phase1", dependencies=phase1)
