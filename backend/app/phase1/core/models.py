@@ -13,6 +13,7 @@ class StageStatusResponse(BaseModel):
     stage_id: int
     stage_name: str
     status: str # LOCKED, ACTIVE, COMPLETED, SKIPPED
+    enabled: bool = True   # False = switched off by the organizers (not playable, not in the total)
     score: float
     max_score: float = 10.0
     started_at: Optional[str] = None
@@ -35,6 +36,8 @@ class TeamDashboardResponse(BaseModel):
     total_teams: int = 0
     debug_unlock_all: bool = False
     unlock_all: bool = False
+    enabled_stages: List[int] = []
+    max_total_score: float = 100.0
 
 class LeaderboardEntry(BaseModel):
     rank: int
@@ -50,6 +53,8 @@ class LeaderboardEntry(BaseModel):
 class LeaderboardResponse(BaseModel):
     leaderboard: List[LeaderboardEntry]
     updated_at: str
+    enabled_stages: List[int] = []
+    max_total_score: float = 100.0
 
 # ── Game Submission Request Models ─────────────────────────────────────────────
 

@@ -15,6 +15,7 @@ from app.phase1.core.database import (
     select_rows,
     update_rows,
     get_scoring_config,
+    get_enabled_stages,
 )
 from app.phase1.games.registry import hint_texts
 from app.phase1.core.models import LeaderboardEntry, LeaderboardResponse, StageStatusResponse, TeamDashboardResponse
@@ -109,6 +110,8 @@ class ProgressionEngine:
     @staticmethod
     def verify_stage_access(team_id: str, stage_id: int) -> Dict[str, Any]:
         team = ProgressionEngine.get_team_by_id(team_id)
+        if stage_id not in get_enabled_stages():
+            raise HTTPException(status_code=403, detail="This game has been switched off by the organizers.")
         progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
         if not progress:
             raise HTTPException(status_code=404, detail="Stage progress not found.")
@@ -161,11 +164,36 @@ class ProgressionEngine:
 
     @staticmethod
     def _recalculate_team_totals(team_id: str) -> None:
-        progress = select_rows("p1_stage_progress", {"team_id": team_id})
+        # Only games that are switched on count towards the total.
+        enabled = set(get_enabled_stages())
+        progress = [row for row in select_rows("p1_stage_progress", {"team_id": team_id}) if row["stage_id"] in enabled]
         update_rows("p1_teams", {"id": team_id}, {
             "total_score": sum(float(row["score"] or 0.0) for row in progress),
             "total_penalty": sum(float(row["penalty_points"] or 0.0) for row in progress),
         })
+
+    @staticmethod
+    def next_enabled_stage(stage_id: int) -> int:
+        """The next game that is switched on after `stage_id` (TOTAL_STAGES + 1 when none is left)."""
+        enabled = set(get_enabled_stages())
+        for n in range(stage_id + 1, settings.TOTAL_STAGES + 1):
+            if n in enabled:
+                return n
+        return settings.TOTAL_STAGES + 1
+
+    @staticmethod
+    def reconcile_all_teams() -> None:
+        """After a game is switched on/off: put every team on its lowest unfinished enabled game and refresh totals."""
+        enabled = get_enabled_stages()
+        now = datetime.now(timezone.utc).isoformat()
+        for team in select_rows("p1_teams"):
+            ProgressionEngine.ensure_stage_rows(team)
+            rows = {row["stage_id"]: row for row in select_rows("p1_stage_progress", {"team_id": team["id"]})}
+            target = next((n for n in enabled if rows[n]["status"] not in ("COMPLETED", "SKIPPED")), settings.TOTAL_STAGES + 1)
+            if target <= settings.TOTAL_STAGES and rows[target]["status"] == "LOCKED":
+                update_rows("p1_stage_progress", {"team_id": team["id"], "stage_id": target}, {"status": "ACTIVE", "started_at": now})
+            update_rows("p1_teams", {"id": team["id"]}, {"current_stage": target, "updated_at": now})
+            ProgressionEngine._recalculate_team_totals(team["id"])
 
     @staticmethod
     def complete_stage(team_id: str, stage_id: int, final_score: float, metadata: Optional[Dict[str, Any]] = None) -> None:
@@ -174,7 +202,7 @@ class ProgressionEngine:
         update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {
             "status": "COMPLETED", "score": score, "completed_at": now, "metadata": metadata or {},
         })
-        next_stage = stage_id + 1
+        next_stage = ProgressionEngine.next_enabled_stage(stage_id)
         if next_stage <= settings.TOTAL_STAGES:
             update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
@@ -204,7 +232,7 @@ class ProgressionEngine:
             "completed_at": now,
             "metadata": metadata,
         })
-        next_stage = stage_id + 1
+        next_stage = ProgressionEngine.next_enabled_stage(stage_id)
         if next_stage <= settings.TOTAL_STAGES:
             update_rows("p1_stage_progress", {
                 "team_id": team_id, "stage_id": next_stage, "status": "LOCKED",
@@ -276,6 +304,7 @@ class ProgressionEngine:
         rows = select_rows("p1_stage_progress", {"team_id": team_id}, "stage_id")
         now = datetime.now(timezone.utc)
         scoring_config = get_scoring_config()
+        enabled_stages = get_enabled_stages()
         stages = []
         for row in rows:
             elapsed = None
@@ -291,6 +320,7 @@ class ProgressionEngine:
             stages.append(StageStatusResponse(
                 stage_id=stage_id,
                 stage_name=settings.STAGE_NAMES.get(stage_id, f"Stage {stage_id}"),
+                enabled=stage_id in enabled_stages,
                 status=row["status"],
                 score=float(row["score"]),
                 max_score=10.0,
@@ -312,6 +342,7 @@ class ProgressionEngine:
             total_score=float(team["total_score"]), total_penalty=float(team["total_penalty"]),
             stages=stages, rank=rank, total_teams=len(teams), debug_unlock_all=settings_app.debug_unlock_all,
             unlock_all=settings.UNLOCK_ALL or settings_app.debug_unlock_all,
+            enabled_stages=enabled_stages, max_total_score=10.0 * len(enabled_stages),
         )
 
     @staticmethod
@@ -336,7 +367,9 @@ class ProgressionEngine:
                 completed_stages_count=sum(row["status"] in ("COMPLETED", "SKIPPED") for row in progress),
                 last_activity=team["updated_at"],
             ))
-        return LeaderboardResponse(leaderboard=entries, updated_at=datetime.now(timezone.utc).isoformat())
+        enabled_stages = get_enabled_stages()
+        return LeaderboardResponse(leaderboard=entries, updated_at=datetime.now(timezone.utc).isoformat(),
+                                   enabled_stages=enabled_stages, max_total_score=10.0 * len(enabled_stages))
 
     @staticmethod
     def admin_reset_team(team_id: str, target_stage: int = 1) -> None:

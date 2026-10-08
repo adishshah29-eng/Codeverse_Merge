@@ -118,6 +118,36 @@ def update_scoring_config(new_config: Dict[str, Any]) -> Dict[str, Any]:
     return new_config
 
 
+# ── Game switches (organizers can turn individual games on/off) ────────────────
+
+def get_disabled_stages() -> set:
+    """Stage ids the organizers have switched off. A switched-off game can't be played and doesn't count in totals."""
+    try:
+        result = get_store().table("p1_dynamic_config").select("value").eq("key", "stages_disabled").execute()
+        if result.data:
+            value = decode_json(result.data[0]["value"], {})
+            return {int(n) for n in (value.get("disabled", []) if isinstance(value, dict) else [])}
+    except Exception as exc:
+        logger.warning("Could not read Phase 1 game switches: %s", exc)
+    return set()
+
+
+def get_enabled_stages() -> list:
+    disabled = get_disabled_stages()
+    return [n for n in range(1, settings.TOTAL_STAGES + 1) if n not in disabled]
+
+
+def set_stage_enabled(stage_id: int, enabled: bool) -> list:
+    disabled = get_disabled_stages()
+    disabled.discard(stage_id) if enabled else disabled.add(stage_id)
+    get_store().table("p1_dynamic_config").upsert({
+        "key": "stages_disabled",
+        "value": {"disabled": sorted(disabled)},
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+    return get_enabled_stages()
+
+
 # ── Audit Log Helper ──────────────────────────────────────────────────────────
 
 def log_audit(action: str, details: Dict[str, Any], team_id: Optional[str] = None):

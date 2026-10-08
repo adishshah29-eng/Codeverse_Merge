@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   ShieldCheck, RefreshCw, X, RotateCcw, UserX, UserCheck, 
-  Trash2, Sliders, History, AlertCircle
+  Trash2, Sliders, History, AlertCircle, ToggleLeft
 } from "lucide-react";
 import { adminApi } from "../api";
 
@@ -12,6 +12,9 @@ export default function AdminPortal({ isOpen, onClose }) {
   const [config, setConfig] = useState(null);
   const [configJson, setConfigJson] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
+  const [games, setGames] = useState([]);
+  const [maxTotal, setMaxTotal] = useState(100);
+  const [switching, setSwitching] = useState(null);
   const [actionMsg, setActionMsg] = useState("");
 
   const loadData = async () => {
@@ -20,7 +23,11 @@ export default function AdminPortal({ isOpen, onClose }) {
     try {
       if (activeTab === "teams") {
         const res = await adminApi.getTeams();
-        setTeams(res.teams || []);
+        setTeams(res.p1_teams || res.teams || []);
+      } else if (activeTab === "games") {
+        const res = await adminApi.getStages();
+        setGames(res.stages || []);
+        setMaxTotal(res.max_total_score);
       } else if (activeTab === "config") {
         const res = await adminApi.getConfig();
         setConfig(res.scoring_config);
@@ -73,6 +80,22 @@ export default function AdminPortal({ isOpen, onClose }) {
       loadData();
     } catch (err) {
       setActionMsg(err.message || "Failed to delete team.");
+    }
+  };
+
+  const handleSwitchGame = async (game) => {
+    const turningOff = game.enabled;
+    if (turningOff && !window.confirm(`Switch OFF "${game.name}"? Teams can no longer play it and its score stops counting towards totals (scores are kept, and come back if you switch it on again).`)) return;
+    setSwitching(game.stage_id);
+    try {
+      const res = await adminApi.setStageEnabled(game.stage_id, !game.enabled);
+      setGames((prev) => prev.map((g) => (g.stage_id === game.stage_id ? { ...g, enabled: res.enabled } : g)));
+      setMaxTotal(res.max_total_score);
+      setActionMsg(`${game.name} is now ${res.enabled ? "ON" : "OFF"}. Totals now out of ${res.max_total_score}.`);
+    } catch (err) {
+      setActionMsg(err.message || "Could not change the switch.");
+    } finally {
+      setSwitching(null);
     }
   };
 
@@ -136,6 +159,16 @@ export default function AdminPortal({ isOpen, onClose }) {
             }`}
           >
             Live Teams ({teams.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("games")}
+            className={`px-4 py-2 font-sans text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === "games"
+                ? "border-rose-500 text-rose-400"
+                : "border-transparent text-gray-400 hover:text-white"
+            }`}
+          >
+            <ToggleLeft className="w-3.5 h-3.5" /> Games on / off
           </button>
           <button
             onClick={() => setActiveTab("config")}
@@ -267,6 +300,45 @@ export default function AdminPortal({ isOpen, onClose }) {
                 rows={16}
                 className="w-full p-4 rounded-xl bg-[#0A0807] border border-[#352D27] text-beige font-mono text-xs focus:outline-none focus:border-[#D2362B]"
               />
+            </div>
+          )}
+
+          {activeTab === "games" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-300">
+                Switch games on or off for the whole event. A game that is off can&apos;t be opened, hints and skips are blocked, and
+                its score is <strong className="text-white">left out of every team&apos;s total</strong>. Teams currently on it
+                move to the next game that is on. Scores are kept, so switching a game back on restores them.
+              </p>
+              <p className="text-sm text-white">
+                Games on: <strong>{games.filter((g) => g.enabled).length}</strong> of {games.length} · totals are out of{" "}
+                <strong>{maxTotal}</strong> points
+              </p>
+              <ul className="border border-[#352D27] divide-y divide-[#352D27]">
+                {games.map((g) => (
+                  <li key={g.stage_id} className="flex items-center justify-between gap-4 px-4 py-3 bg-[#161210]">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-white">
+                        Game {g.stage_id} <span className="text-gray-500 font-normal">· {g.stage_id <= 5 ? "Royal Mint Heist" : "Challenge Arena"}</span>
+                      </div>
+                      <div className={`text-sm ${g.enabled ? "text-gray-300" : "text-gray-500 line-through"}`}>{g.name}</div>
+                    </div>
+                    <button
+                      role="switch"
+                      aria-checked={g.enabled}
+                      aria-label={`${g.name}: ${g.enabled ? "on" : "off"}`}
+                      disabled={switching === g.stage_id}
+                      onClick={() => handleSwitchGame(g)}
+                      className={`relative shrink-0 w-14 h-7 rounded-full border transition ${
+                        g.enabled ? "bg-[#D2362B] border-[#D2362B]" : "bg-[#0A0807] border-[#5C5148]"
+                      } disabled:opacity-50`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${g.enabled ? "left-8" : "left-1 bg-[#A89A88]"}`} />
+                      <span className="sr-only">{g.enabled ? "On" : "Off"}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

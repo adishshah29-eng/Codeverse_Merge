@@ -214,3 +214,53 @@ def test_team_created_before_arena_stages_gets_rows_backfilled(client):
         assert len(select_rows("p1_stage_progress", {"team_id": team["id"]})) == 10
     finally:
         p1.UNLOCK_ALL = False
+
+
+def test_admin_can_switch_games_off_and_totals_follow(client):
+    from app.phase1.core.database import select_one, update_rows
+
+    def admin():
+        client.cookies.clear()
+        assert client.post("/api/auth/admin-login", json={"username": "organizer", "password": "organizer-password-123"}).status_code == 200
+
+    def login(email):
+        client.cookies.clear()
+        assert client.post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 200
+
+    admin()
+    client.post("/api/admin/teams", json={"code": "T3", "name": "Switcher", "email": "s@example.com", "password": "password123"})
+    sw = client.get("/api/phase1/admin/stages").json()
+    assert len(sw["stages"]) == 10 and all(s["enabled"] for s in sw["stages"]) and sw["max_total_score"] == 100
+
+    login("s@example.com")
+    assert client.get("/api/phase1/progress/dashboard").status_code == 200            # creates the team's rows
+    team = select_one("p1_teams", {"name": "Switcher"})
+    update_rows("p1_stage_progress", {"team_id": team["id"], "stage_id": 3}, {"score": 7.0, "status": "COMPLETED"})
+    update_rows("p1_stage_progress", {"team_id": team["id"], "stage_id": 4}, {"score": 5.0, "status": "COMPLETED"})
+
+    admin()
+    assert client.put("/api/phase1/admin/stages/4", json={"enabled": False}).status_code == 200
+    assert client.put("/api/phase1/admin/stages/2", json={"enabled": False}).status_code == 200
+    login("s@example.com")
+    d = client.get("/api/phase1/progress/dashboard").json()
+    assert d["enabled_stages"] == [1, 3, 5, 6, 7, 8, 9, 10] and d["max_total_score"] == 80
+    assert d["total_score"] == 7.0                                    # stage 4 (5 pts) no longer counts
+    assert [s["enabled"] for s in d["stages"]][:4] == [True, False, True, False]
+    assert d["current_stage"] == 1
+    assert client.get("/api/phase1/games/2/challenges").status_code == 403           # switched off
+    assert client.post("/api/phase1/progress/hint", json={"stage_id": 4, "hint_index": 0}).status_code == 403
+    # skipping stage 1 moves on to stage 3 (stage 2 is off), which is already complete, so on to stage 5
+    assert client.post("/api/phase1/progress/skip", json={"stage_id": 1}).json()["next_stage"] == 3
+    lb = client.get("/api/phase1/leaderboard").json()
+    assert lb["max_total_score"] == 80 and 2 not in lb["enabled_stages"]
+    row = next(e for e in lb["leaderboard"] if e["team_name"] == "Switcher")
+    assert row["total_score"] == 7.0
+
+    admin()                                                           # switching it back on restores the score
+    assert client.put("/api/phase1/admin/stages/4", json={"enabled": True}).json()["max_total_score"] == 90
+    login("s@example.com")
+    assert client.get("/api/phase1/progress/dashboard").json()["total_score"] == 12.0
+    admin()
+    client.put("/api/phase1/admin/stages/2", json={"enabled": True})
+    assert client.put("/api/phase1/admin/stages/3", json={"enabled": "no"}).status_code == 422
+    assert client.put("/api/phase1/admin/stages/11", json={"enabled": True}).status_code == 404

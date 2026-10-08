@@ -9,7 +9,9 @@ from app.phase1.core.database import (
     decode_json,
     delete_rows,
     get_store,
+    get_enabled_stages,
     get_scoring_config,
+    set_stage_enabled,
     log_audit,
     select_rows,
     update_scoring_config,
@@ -97,6 +99,32 @@ def admin_delete_team(team_id: str, admin: dict = Depends(current_admin)):
     delete_rows("p1_teams", {"id": team_id})
     log_audit("ADMIN_DELETE_TEAM", {"team_id": team_id})
     return {"success": True, "message": "Team's Phase 1 record deleted."}
+
+
+@router.get("/stages")
+def admin_list_stages(admin: dict = Depends(current_admin)):
+    enabled = set(get_enabled_stages())
+    return {
+        "stages": [{"stage_id": n, "name": settings.STAGE_NAMES.get(n, f"Stage {n}"), "enabled": n in enabled}
+                   for n in range(1, settings.TOTAL_STAGES + 1)],
+        "max_total_score": 10.0 * len(enabled),
+    }
+
+
+@router.put("/stages/{stage_id}")
+def admin_set_stage(stage_id: int, payload: Dict[str, Any], admin: dict = Depends(current_admin)):
+    """Switch a game on or off. Totals, progress and every team's current game are recomputed straight away."""
+    if not 1 <= stage_id <= settings.TOTAL_STAGES:
+        raise HTTPException(status_code=404, detail="Unknown stage.")
+    if "enabled" not in payload or not isinstance(payload["enabled"], bool):
+        raise HTTPException(status_code=422, detail="Send {\"enabled\": true|false}.")
+    if not payload["enabled"] and get_enabled_stages() == [stage_id]:
+        raise HTTPException(status_code=409, detail="At least one game has to stay switched on.")
+    enabled = set_stage_enabled(stage_id, payload["enabled"])
+    ProgressionEngine.reconcile_all_teams()
+    log_audit("ADMIN_STAGE_SWITCH", {"stage_id": stage_id, "enabled": payload["enabled"], "enabled_stages": enabled})
+    return {"success": True, "stage_id": stage_id, "enabled": payload["enabled"], "enabled_stages": enabled,
+            "max_total_score": 10.0 * len(enabled)}
 
 
 @router.get("/config")

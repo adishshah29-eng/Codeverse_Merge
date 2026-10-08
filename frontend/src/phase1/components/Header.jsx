@@ -56,9 +56,10 @@ export default function Header({
               <ol className="flex gap-1">
                 {group.ids.map((id) => {
                   const st = byId[id] || { status: id === 1 ? "ACTIVE" : "LOCKED" };
-                  const isCurrent = dashboard?.current_stage === id;
+                  const isCurrent = dashboard?.current_stage === id && st.enabled !== false;
                   const selected = activeStageId === id;
-                  const locked = st.status === "LOCKED" && !isCurrent && !dashboard?.unlock_all;
+                  const off = st.enabled === false;
+                  const locked = off || (st.status === "LOCKED" && !isCurrent && !dashboard?.unlock_all);
                   const done = st.status === "COMPLETED";
                   const skipped = st.status === "SKIPPED";
                   let tone = "border-rule text-beige-faint";
@@ -71,12 +72,12 @@ export default function Header({
                         onClick={() => onSelectStage(id)}
                         disabled={locked}
                         aria-current={selected ? "step" : undefined}
-                        title={`Stage ${id}: ${st.stage_name || ""} (${st.status.toLowerCase()})`}
+                        title={`Stage ${id}: ${st.stage_name || ""} (${off ? "switched off" : st.status.toLowerCase()})`}
                         className={`w-9 h-8 flex items-center justify-center text-[13px] font-semibold border rounded-sm ${tone} ${
                           locked ? "opacity-40 cursor-not-allowed" : "hover:border-white hover:text-white"
                         } ${selected ? "outline outline-2 outline-offset-2 outline-beige" : ""}`}
                       >
-                        {done ? <Check className="w-4 h-4" strokeWidth={3} /> : skipped ? <FastForward className="w-3.5 h-3.5" /> : locked ? <Lock className="w-3 h-3" /> : id}
+                        {off ? <span className="text-[10px] uppercase">off</span> : done ? <Check className="w-4 h-4" strokeWidth={3} /> : skipped ? <FastForward className="w-3.5 h-3.5" /> : locked ? <Lock className="w-3 h-3" /> : id}
                       </button>
                     </li>
                   );
@@ -92,7 +93,7 @@ export default function Header({
               <div className={labelCls}>Score</div>
               <div className="font-display text-2xl font-semibold leading-none text-white tabular-nums">
                 {totalScore.toFixed(1)}
-                <span className="text-sm text-beige-faint font-sans font-normal"> / 100</span>
+                <span className="text-sm text-beige-faint font-sans font-normal"> / {Number(dashboard?.max_total_score ?? 100).toFixed(0)}</span>
               </div>
             </div>
             <div className="hidden sm:block">

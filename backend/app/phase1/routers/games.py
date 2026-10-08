@@ -94,7 +94,8 @@ def _response(stage_id: int, *, success: bool, perfect: bool, awarded: float, to
 
 
 def _next(stage_id: int) -> Optional[int]:
-    return stage_id + 1 if stage_id < settings.TOTAL_STAGES else None
+    nxt = ProgressionEngine.next_enabled_stage(stage_id)
+    return nxt if nxt <= settings.TOTAL_STAGES else None
 
 
 @router.post("/{stage_id}/submit", response_model=GenericSubmissionResponse)

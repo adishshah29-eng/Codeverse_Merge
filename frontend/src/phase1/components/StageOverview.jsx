@@ -27,7 +27,8 @@ export default function StageOverview({ dashboard, activeStageId, onSelectStage 
               const { title, domain } = split(st.stage_name);
               const isCurrent = dashboard?.current_stage === id;
               const selected = activeStageId === id;
-              const locked = st.status === "LOCKED" && !isCurrent && !dashboard?.unlock_all;
+              const off = st.enabled === false;
+              const locked = off || (st.status === "LOCKED" && !isCurrent && !dashboard?.unlock_all);
               const done = st.status === "COMPLETED";
               const skipped = st.status === "SKIPPED";
               return (
@@ -45,10 +46,10 @@ export default function StageOverview({ dashboard, activeStageId, onSelectStage 
                     <span className="flex items-center justify-between text-[11px] font-semibold text-beige-dim">
                       <span>Game {id}</span>
                       <span className="flex items-center gap-1">
-                        {done && <><Check className="w-3.5 h-3.5 text-beige" strokeWidth={3} />{Number(st.score).toFixed(1)}</>}
-                        {skipped && <><FastForward className="w-3 h-3" />skipped</>}
-                        {locked && <><Lock className="w-3 h-3" />locked</>}
-                        {isCurrent && !done && <span className="text-red-text">in progress{Number(st.score) > 0 ? ` · ${Number(st.score).toFixed(1)}` : ""}</span>}
+                        {!off && done && <><Check className="w-3.5 h-3.5 text-beige" strokeWidth={3} />{Number(st.score).toFixed(1)}</>}
+                        {!off && skipped && <><FastForward className="w-3 h-3" />skipped</>}
+                        {off ? <span>switched off</span> : locked && <><Lock className="w-3 h-3" />locked</>}
+                        {!off && isCurrent && !done && <span className="text-red-text">in progress{Number(st.score) > 0 ? ` · ${Number(st.score).toFixed(1)}` : ""}</span>}
                       </span>
                     </span>
                     <span className="font-display text-[17px] font-semibold leading-tight text-white">{title || `Stage ${id}`}</span>

@@ -79,7 +79,7 @@ export default function TeamDashboardModal({
             <div className="bg-[#161210] p-3.5 rounded-xl border border-[#352D27]">
               <div className="text-[11px] text-gray-400 font-sans uppercase">Total Points</div>
               <div className="text-xl font-bold text-[#E9DFCB] font-sans mt-0.5">
-                {dashboard.total_score.toFixed(2)} <span className="text-xs text-gray-500">/ 100.0</span>
+                {dashboard.total_score.toFixed(2)} <span className="text-xs text-gray-500">/ {Number(dashboard.max_total_score ?? 100).toFixed(1)}</span>
               </div>
             </div>
 
@@ -138,22 +138,25 @@ export default function TeamDashboardModal({
                         <td className="py-2.5 px-3 font-bold text-white">G{st.stage_id}</td>
                         <td className="py-2.5 px-3 font-medium text-gray-200">{st.stage_name}</td>
                         <td className="py-2.5 px-3">
-                          {st.status === "COMPLETED" && (
+                          {st.enabled === false && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#161210] text-gray-500 border border-gray-700/50 w-fit block">SWITCHED OFF · not counted</span>
+                          )}
+                          {st.enabled !== false && st.status === "COMPLETED" && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit">
                               <CheckCircle className="w-3 h-3" /> COMPLETED
                             </span>
                           )}
-                          {st.status === "SKIPPED" && (
+                          {st.enabled !== false && st.status === "SKIPPED" && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/60 text-rose-400 border border-rose-500/30 flex items-center gap-1 w-fit">
                               <FastForward className="w-3 h-3" /> SKIPPED
                             </span>
                           )}
-                          {st.status === "ACTIVE" && (
+                          {st.enabled !== false && st.status === "ACTIVE" && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#D2362B]/20 text-[#E9DFCB] border border-[#D2362B]/40 flex items-center gap-1 w-fit">
                               ACTIVE NOW
                             </span>
                           )}
-                          {st.status === "LOCKED" && (
+                          {st.enabled !== false && st.status === "LOCKED" && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#161210] text-gray-500 border border-gray-700/50 flex items-center gap-1 w-fit">
                               <Lock className="w-3 h-3" /> LOCKED
                             </span>
@@ -173,7 +176,7 @@ export default function TeamDashboardModal({
                               onStageChange(st.stage_id);
                               onClose();
                             }}
-                            disabled={st.status === "LOCKED" && !isCur}
+                            disabled={st.enabled === false || (st.status === "LOCKED" && !isCur && !dashboard.unlock_all)}
                             className={`px-2.5 py-1 rounded text-[11px] font-sans border transition ${
                               st.status === "LOCKED" 
                                 ? "border-gray-800 text-gray-600 cursor-not-allowed" 

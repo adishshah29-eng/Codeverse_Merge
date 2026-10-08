@@ -34,6 +34,7 @@ Every stage is worth up to **10 points** (100 total). Stages unlock in order.
 
 ## How scoring works
 
+* **Organizers can switch games off.** A game that is switched off cannot be played and is left out of every team's total; the "out of" maximum shrinks to match (10 points per game that is on). Scores are kept, so switching a game back on restores them.
 * **Partial credit.** Submit as often as you like (there is a few-seconds cooldown). The platform keeps your **best** grade.
 * **Perfect = automatic completion.** When nothing more can be earned the stage completes and the next one unlocks.
 * **Not perfect?** Press **Lock in score & continue** to bank your best grade and move on (you cannot return), or keep improving.

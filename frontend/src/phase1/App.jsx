@@ -75,7 +75,7 @@ export default function App() {
           if (isFirst) return data.current_stage;
           // If active stage is already manually set to an unlocked one, keep it; else set current
           const targetObj = data.stages.find((s) => s.stage_id === prev);
-          if (targetObj && (targetObj.status !== "LOCKED" || data.unlock_all)) return prev;
+          if (targetObj && targetObj.enabled !== false && (targetObj.status !== "LOCKED" || data.unlock_all)) return prev;
           return data.current_stage;
         });
       } else {
@@ -167,7 +167,7 @@ export default function App() {
                 <div className="text-2xl font-bold text-[#E9DFCB] mt-0.5">
                   {dashboard?.total_score.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-gray-500">out of 100.0 pts</div>
+                <div className="text-[10px] text-gray-500">out of {Number(dashboard?.max_total_score ?? 100).toFixed(1)} pts</div>
               </div>
               <div className="p-3.5 rounded-2xl bg-[#161210] border border-[#352D27]">
                 <div className="text-[10px] text-gray-400 uppercase">Rank</div>

@@ -6,6 +6,8 @@ const STAGE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
   const [leaderboard, setLeaderboard] = useState([]);
+  const [enabled, setEnabled] = useState(STAGE_IDS);
+  const [maxTotal, setMaxTotal] = useState(100);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState("");
 
@@ -14,6 +16,8 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
     try {
       const res = await leaderboardApi.getLeaderboard();
       setLeaderboard(res.leaderboard || []);
+      if (res.enabled_stages) setEnabled(res.enabled_stages);
+      if (res.max_total_score) setMaxTotal(res.max_total_score);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Failed to load leaderboard:", err);
@@ -80,7 +84,7 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                   <th className="py-3 px-3.5">Team Operative</th>
                   <th className="py-3 px-3.5 text-center">Stage</th>
                   {STAGE_IDS.map((n) => (
-                    <th key={n} className="py-3 px-1.5 text-center">G{n}</th>
+                    <th key={n} className={`py-3 px-1.5 text-center ${enabled.includes(n) ? "" : "opacity-40 line-through"}`} title={enabled.includes(n) ? "" : "Switched off — not counted"}>G{n}</th>
                   ))}
                   <th className="py-3 px-3.5 text-right">Total Score</th>
                 </tr>
@@ -140,13 +144,13 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                           </span>
                         </td>
                         {STAGE_IDS.map((n) => (
-                          <td key={n} className="py-3 px-1.5 text-center text-gray-300">
+                          <td key={n} className={`py-3 px-1.5 text-center text-gray-300 ${enabled.includes(n) ? "" : "opacity-30"}`}>
                             {entry.stage_scores?.[`stage_${n}`] ? `+${entry.stage_scores[`stage_${n}`].toFixed(1)}` : "—"}
                           </td>
                         ))}
                         <td className="py-3 px-3.5 text-right font-bold text-sm text-[#E9DFCB]">
                           {entry.total_score.toFixed(2)}
-                          <span className="text-[10px] text-gray-500 font-normal ml-1">pts</span>
+                          <span className="text-[10px] text-gray-500 font-normal ml-1">/ {maxTotal}</span>
                         </td>
                       </tr>
                     );

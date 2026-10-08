@@ -103,7 +103,7 @@ def submit_game1(payload: Game1Submission, team_id: str = Depends(phase1_team_id
             total_stage_score=score_awarded,
             message=verif["message"],
             feedback=score_res["breakdown"],
-            next_stage=2
+            next_stage=ProgressionEngine.next_enabled_stage(1)
         )
     else:
         return GenericSubmissionResponse(
@@ -191,7 +191,7 @@ def submit_game2(payload: Game2Submission, team_id: str = Depends(phase1_team_id
             total_stage_score=score_awarded,
             message=verif["message"],
             feedback={"stdout": verif["stdout"], "breakdown": score_res["breakdown"]},
-            next_stage=3
+            next_stage=ProgressionEngine.next_enabled_stage(2)
         )
     else:
         return GenericSubmissionResponse(
@@ -282,7 +282,7 @@ def submit_game3(payload: Game3Submission, team_id: str = Depends(phase1_team_id
             total_stage_score=score_awarded,
             message=verif["message"],
             feedback=score_res["breakdown"],
-            next_stage=4
+            next_stage=ProgressionEngine.next_enabled_stage(3)
         )
     else:
         return GenericSubmissionResponse(
@@ -362,7 +362,7 @@ def submit_game4(payload: Game4Submission, team_id: str = Depends(phase1_team_id
             total_stage_score=score_awarded,
             message=verif["message"],
             feedback=score_res["breakdown"],
-            next_stage=5
+            next_stage=ProgressionEngine.next_enabled_stage(4)
         )
     else:
         return GenericSubmissionResponse(
@@ -439,7 +439,7 @@ def submit_game5(payload: Game5Submission, team_id: str = Depends(phase1_team_id
             total_stage_score=score_awarded,
             message=verif["message"],
             feedback={"error_pct": verif.get("error_pct"), "image": verif.get("image"), "breakdown": score_res["breakdown"]},
-            next_stage=6,
+            next_stage=ProgressionEngine.next_enabled_stage(5),
             mission_complete=False
         )
     else:
