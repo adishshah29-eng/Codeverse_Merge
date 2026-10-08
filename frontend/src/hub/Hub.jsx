@@ -10,7 +10,7 @@ const PHASES = [
   {
     id: 1,
     href: "/phase1/",
-    kicker: "PHASE 01",
+    kicker: "Phase 1",
     title: "Royal Mint Heist + Challenge Arena",
     blurb: "Ten stages. The Royal Mint heist (vault breach, alarm debugging, hidden blueprint, mint map, printing-press ML) followed by five engineering challenges: speed up a URL shortener, bust the TODO-API bugs, crack a binary, build a spreadsheet engine and diagnose a lying regression model.",
     adminBlurb: "Phase 1 team progress, scoring rules, resets and audit log.",
@@ -18,7 +18,7 @@ const PHASES = [
   {
     id: 2,
     href: "/phase2/",
-    kicker: "PHASE 02",
+    kicker: "Phase 2",
     title: "Operación Fuga",
     blurb: "Erase the money trail, take the control server, outrun the police and pull off the final extraction.",
     adminBlurb: "Team accounts, hints, penalties, live configuration (incl. active_phases) and audit events.",
@@ -63,7 +63,7 @@ export default function Hub() {
     return (
       <div className="hub-center">
         <Activity size={28} />
-        <div>ESTABLISHING SECURE CHANNEL...</div>
+        <div>Loading…</div>
       </div>
     );
   }
@@ -79,8 +79,8 @@ export default function Hub() {
     <main className="hub-page">
       <header className="hub-header">
         <div>
-          <p className="hub-kicker">CODEVERSE 2.0 · MISSION HUB</p>
-          <h1>{isAdmin ? "Organizer Command" : "Choose your operation"}</h1>
+          <p className="hub-kicker">Codeverse 2.0</p>
+          <h1>{isAdmin ? "Organizer console" : "Choose a phase"}</h1>
           <p className="hub-who">
             {isAdmin ? <ShieldCheck size={15} /> : <Activity size={15} />} {who}
           </p>
@@ -96,7 +96,7 @@ export default function Hub() {
           const Card = open ? "a" : "div";
           return (
             <Card key={phase.id} className={`hub-card ${open ? "" : "hub-card-locked"}`} {...(open ? { href: phase.href } : {})}>
-              <p className="hub-kicker">{phase.kicker}{isAdmin && !activePhases.includes(phase.id) ? " · CLOSED TO TEAMS" : ""}</p>
+              <p className="hub-kicker">{phase.kicker}{isAdmin && !activePhases.includes(phase.id) ? " · closed to teams" : ""}</p>
               <h2>{phase.title}</h2>
               <p>{isAdmin ? phase.adminBlurb : phase.blurb}</p>
               <span className="hub-cta">

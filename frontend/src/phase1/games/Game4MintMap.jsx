@@ -101,27 +101,27 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-rise">
       
       {/* Header */}
-      <div className="p-5 rounded-2xl glass-panel-glow border border-[#d4af37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl glass-panel-glow border border-[#D2362B]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-sans text-emerald-400 font-bold uppercase tracking-wider">
             <span className="px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/40">STAGE 04</span>
             <span>ALGORITHMS & GRAPH INFILTRATION</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-display font-semibold text-white tracking-tight mt-1">
             La Ruta del Profesor: The Leak + Mint Map
           </h2>
-          <p className="text-xs text-gray-400 font-mono mt-1 max-w-2xl">
+          <p className="text-xs text-gray-400 font-sans mt-1 max-w-2xl">
             Plot the optimal escape path through the 21 vault chambers (Chamber 0 &rarr; Chamber 20). Avoid patrol windows.
-            <span className="text-[#d4af37]"> Score = Risk + 2 &times; Time</span> (Lower cost = higher points, max 10.0 pts).
+            <span className="text-[#E9DFCB]"> Score = Risk + 2 &times; Time</span> (Lower cost = higher points, max 10.0 pts).
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-[#111726] border border-[#23304d] text-center font-mono">
+        <div className="px-4 py-2 rounded-xl bg-[#161210] border border-[#352D27] text-center font-sans">
           <div className="text-[10px] text-gray-400 uppercase">Max Score</div>
-          <div className="text-sm font-extrabold text-[#d4af37]">10.00 pts</div>
+          <div className="text-sm font-extrabold text-[#E9DFCB]">10.00 pts</div>
         </div>
       </div>
 
@@ -129,16 +129,16 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* SVG Tactical Blueprint Map (8 Cols) */}
-        <div className="lg:col-span-8 glass-panel p-4 rounded-2xl border border-[#23304d] flex flex-col">
-          <div className="flex items-center justify-between mb-3 text-xs font-mono text-gray-300">
+        <div className="lg:col-span-8 glass-panel p-4 rounded-2xl border border-[#352D27] flex flex-col">
+          <div className="flex items-center justify-between mb-3 text-xs font-sans text-gray-300">
             <div className="flex items-center gap-2 font-bold">
-              <Navigation className="w-4 h-4 text-[#d4af37]" />
+              <Navigation className="w-4 h-4 text-[#E9DFCB]" />
               <span>Chamber Blueprint & Patrol Telemetry</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleResetRoute}
-                className="px-2.5 py-1 rounded bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-[11px] font-mono text-gray-400 hover:text-white flex items-center gap-1"
+                className="px-2.5 py-1 rounded bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-[11px] font-sans text-gray-400 hover:text-white flex items-center gap-1"
               >
                 <RotateCcw className="w-3 h-3" /> Reset Path
               </button>
@@ -146,12 +146,12 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
           </div>
 
           {/* SVG Map Canvas */}
-          <div className="w-full bg-[#080c14] rounded-xl border border-[#23304d] p-2 overflow-x-auto">
+          <div className="w-full bg-[#0A0807] rounded-xl border border-[#352D27] p-2 overflow-x-auto">
             <svg viewBox="0 0 760 540" className="w-full h-auto min-w-[680px]">
               <defs>
                 <linearGradient id="activeRouteGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#d4af37" />
-                  <stop offset="100%" stopColor="#00e5ff" />
+                  <stop offset="0%" stopColor="#D2362B" />
+                  <stop offset="100%" stopColor="#E9DFCB" />
                 </linearGradient>
               </defs>
 
@@ -180,7 +180,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
                       y1={r1.y}
                       x2={r2.x}
                       y2={r2.y}
-                      stroke={isTraversed ? "url(#activeRouteGrad)" : "#1e293b"}
+                      stroke={isTraversed ? "url(#activeRouteGrad)" : "#241E1A"}
                       strokeWidth={isTraversed ? "4" : "1.5"}
                       strokeDasharray={isTraversed ? "" : "3,3"}
                       className="transition-all"
@@ -188,7 +188,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
                     <text
                       x={(r1.x + r2.x) / 2}
                       y={(r1.y + r2.y) / 2 - 3}
-                      fill={isTraversed ? "#d4af37" : "#475569"}
+                      fill={isTraversed ? "#D2362B" : "#5C5148"}
                       fontSize="9"
                       fontFamily="JetBrains Mono, monospace"
                       textAnchor="middle"
@@ -206,20 +206,20 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
                 const isStart = r.type === "start";
                 const isEnd = r.type === "end";
 
-                let fill = "#111726";
-                let stroke = "#334155";
+                let fill = "#161210";
+                let stroke = "#352D27";
                 if (isCurrent) {
-                  fill = "#d4af37";
+                  fill = "#D2362B";
                   stroke = "#ffffff";
                 } else if (isSelected) {
-                  fill = "#00e5ff";
+                  fill = "#E9DFCB";
                   stroke = "#ffffff";
                 } else if (isStart) {
-                  fill = "#10b981";
-                  stroke = "#34d399";
+                  fill = "#E9DFCB";
+                  stroke = "#E9DFCB";
                 } else if (isEnd) {
-                  fill = "#ef4444";
-                  stroke = "#f87171";
+                  fill = "#F0624F";
+                  stroke = "#F0624F";
                 }
 
                 return (
@@ -251,7 +251,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
                     <text
                       x={r.x}
                       y={r.y + 25}
-                      fill="#94a3b8"
+                      fill="#A89A88"
                       fontSize="8.5"
                       fontFamily="Inter, sans-serif"
                       textAnchor="middle"
@@ -261,7 +261,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
                     <text
                       x={r.x}
                       y={r.y - 18}
-                      fill="#d4af37"
+                      fill="#D2362B"
                       fontSize="8"
                       fontFamily="JetBrains Mono, monospace"
                       textAnchor="middle"
@@ -274,7 +274,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
             </svg>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-gray-500 font-mono mt-2">
+          <div className="flex items-center justify-between text-[11px] text-gray-500 font-sans mt-2">
             <span>&bull; Green: Chamber 0 (Start) &bull; Red: Chamber 20 (Exit)</span>
             <span>Click connected chambers to plot transit path</span>
           </div>
@@ -284,19 +284,19 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
         <div className="lg:col-span-4 space-y-4">
           
           {/* Path Telemetry Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-[#23304d] space-y-4">
-            <h3 className="text-xs font-mono font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-[#d4af37]" />
+          <div className="glass-panel p-5 rounded-2xl border border-[#352D27] space-y-4">
+            <h3 className="text-xs font-sans font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-[#E9DFCB]" />
               Infiltration Telemetry
             </h3>
 
             {/* Path nodes list */}
             <div>
-              <span className="text-[10px] text-gray-400 font-mono block mb-1">Traversed Path:</span>
-              <div className="p-2.5 rounded-xl bg-[#090d14] border border-[#23304d] font-mono text-xs font-bold text-white flex flex-wrap items-center gap-1">
+              <span className="text-[10px] text-gray-400 font-sans block mb-1">Traversed Path:</span>
+              <div className="p-2.5 rounded-xl bg-[#0A0807] border border-[#352D27] font-sans text-xs font-bold text-white flex flex-wrap items-center gap-1">
                 {selectedRoute.map((rid, idx) => (
                   <React.Fragment key={idx}>
-                    <span className="px-1.5 py-0.5 rounded bg-[#161f33] text-[#d4af37]">
+                    <span className="px-1.5 py-0.5 rounded bg-[#161210] text-[#E9DFCB]">
                       {rid}
                     </span>
                     {idx < selectedRoute.length - 1 && <span className="text-gray-600">&rarr;</span>}
@@ -306,22 +306,22 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
             </div>
 
             {/* Cost Breakdown */}
-            <div className="grid grid-cols-3 gap-2 text-center font-mono">
-              <div className="p-2 rounded-xl bg-[#111726] border border-[#23304d]">
+            <div className="grid grid-cols-3 gap-2 text-center font-sans">
+              <div className="p-2 rounded-xl bg-[#161210] border border-[#352D27]">
                 <div className="text-[9px] text-gray-400 uppercase">Risk</div>
                 <div className="text-sm font-bold text-rose-400">
                   {evalResult?.risk ?? 0}
                 </div>
               </div>
-              <div className="p-2 rounded-xl bg-[#111726] border border-[#23304d]">
+              <div className="p-2 rounded-xl bg-[#161210] border border-[#352D27]">
                 <div className="text-[9px] text-gray-400 uppercase">Time</div>
-                <div className="text-sm font-bold text-[#00e5ff]">
+                <div className="text-sm font-bold text-[#E9DFCB]">
                   {evalResult?.time ?? 0}m
                 </div>
               </div>
-              <div className="p-2 rounded-xl bg-[#111726] border border-[#23304d]">
+              <div className="p-2 rounded-xl bg-[#161210] border border-[#352D27]">
                 <div className="text-[9px] text-gray-400 uppercase">Cost</div>
-                <div className="text-sm font-extrabold text-[#d4af37]">
+                <div className="text-sm font-extrabold text-[#E9DFCB]">
                   {evalResult?.cost ?? 0}
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
 
             {/* Window alerts */}
             {evalResult?.failures && evalResult.failures.length > 0 && (
-              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-mono space-y-1">
+              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs font-sans space-y-1">
                 <div className="font-bold flex items-center gap-1 text-rose-400">
                   <AlertTriangle className="w-3.5 h-3.5" /> Patrol Intercepted:
                 </div>
@@ -342,7 +342,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
             )}
 
             {evalResult?.passed && (
-              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-sans flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Legal escape route verified! All patrol security windows satisfied.</span>
               </div>
@@ -351,10 +351,10 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
             <button
               onClick={handleSubmitRoute}
               disabled={submitting || !evalResult?.passed}
-              className={`w-full py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+              className={`w-full py-2.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
                 evalResult?.passed
-                  ? "bg-gradient-to-r from-[#d4af37] to-[#b89628] hover:from-[#e5bd3d] text-black shadow-lg shadow-[#d4af37]/20"
-                  : "bg-[#161f33] text-gray-500 border border-[#23304d] cursor-not-allowed"
+                  ? "bg-red text-white"
+                  : "bg-[#161210] text-gray-500 border border-[#352D27] cursor-not-allowed"
               }`}
             >
               {submitting ? "Executing Escape..." : "Confirm & Execute Infiltration"}
@@ -363,7 +363,7 @@ export default function Game4MintMap({ onStageComplete, dashboard, onRefresh }) 
 
           {/* Feedback */}
           {submissionFeedback && (
-            <div className={`p-3.5 rounded-xl border text-xs font-mono animate-fadeIn ${
+            <div className={`p-3.5 rounded-xl border text-xs font-sans animate-rise ${
               submissionFeedback.passed 
                 ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300" 
                 : "bg-rose-950/60 border-rose-500/50 text-rose-300"

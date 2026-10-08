@@ -103,27 +103,27 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-rise">
       
       {/* Stage Header */}
-      <div className="p-5 rounded-2xl glass-panel-glow border border-[#d4af37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl glass-panel-glow border border-[#D2362B]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-sans text-amber-400 font-bold uppercase tracking-wider">
             <span className="px-2 py-0.5 rounded bg-amber-950/40 border border-amber-500/40">STAGE 05</span>
             <span>MACHINE LEARNING REGRESSION BENCHMARK</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-display font-semibold text-white tracking-tight mt-1">
             Printing Press: Machine Learning Studio
           </h2>
-          <p className="text-xs text-gray-400 font-mono mt-1 max-w-2xl">
-            Predict the industrial currency print yield (<span className="text-[#d4af37]">amount_printed</span>). Train your model on the 7,000-row dataset and predict test values.
-            Scored directly against the private server answer key (<span className="text-[#d4af37]">&le; 2% error = 10.0 pts</span>).
+          <p className="text-xs text-gray-400 font-sans mt-1 max-w-2xl">
+            Predict the industrial currency print yield (<span className="text-[#E9DFCB]">amount_printed</span>). Train your model on the 7,000-row dataset and predict test values.
+            Scored directly against the private server answer key (<span className="text-[#E9DFCB]">&le; 2% error = 10.0 pts</span>).
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-[#111726] border border-[#23304d] text-center font-mono">
+        <div className="px-4 py-2 rounded-xl bg-[#161210] border border-[#352D27] text-center font-sans">
           <div className="text-[10px] text-gray-400 uppercase">Max Score</div>
-          <div className="text-sm font-extrabold text-[#d4af37]">10.00 pts</div>
+          <div className="text-sm font-extrabold text-[#E9DFCB]">10.00 pts</div>
         </div>
       </div>
 
@@ -132,14 +132,14 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
         
         {/* Editor Canvas (8 Cols) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="glass-panel rounded-2xl border border-[#23304d] overflow-hidden flex flex-col h-[560px]">
+          <div className="glass-panel rounded-2xl border border-[#352D27] overflow-hidden flex flex-col h-[560px]">
             
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#0f1422] border-b border-[#23304d]">
-              <div className="flex items-center gap-2 text-xs font-mono text-gray-300">
-                <Code2 className="w-4 h-4 text-[#d4af37]" />
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#0A0807] border-b border-[#352D27]">
+              <div className="flex items-center gap-2 text-xs font-sans text-gray-300">
+                <Code2 className="w-4 h-4 text-[#E9DFCB]" />
                 <span className="font-bold">printing_press_model.py</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#161f33] text-emerald-400 border border-[#23304d]">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#161210] text-emerald-400 border border-[#352D27]">
                   Scikit-Learn &bull; Pandas
                 </span>
               </div>
@@ -149,7 +149,7 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
                   type="button"
                   disabled={running || submitting}
                   onClick={handleTestRun}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#00e5ff]/40 text-[#00e5ff] text-xs font-mono font-bold flex items-center gap-1.5 transition"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#E9DFCB]/40 text-[#E9DFCB] text-xs font-sans font-bold flex items-center gap-1.5 transition"
                 >
                   <Play className={`w-3.5 h-3.5 ${running ? "animate-spin" : ""}`} />
                   {running ? "Training..." : "Test Run"}
@@ -158,7 +158,7 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
                   type="button"
                   disabled={submitting || running}
                   onClick={handleSubmitFinalModel}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#d4af37] to-[#b89628] hover:from-[#e5bd3d] text-black text-xs font-mono font-bold flex items-center gap-1.5 shadow-lg shadow-[#d4af37]/20 transition"
+                  className="px-4 py-1.5 rounded-lg bg-red text-white text-xs font-sans font-bold flex items-center gap-1.5 transition"
                 >
                   <Award className="w-3.5 h-3.5" />
                   {submitting ? "Scoring..." : "Submit for Benchmark"}
@@ -167,7 +167,7 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
             </div>
 
             {/* Monaco Editor */}
-            <div className="flex-1 bg-[#090d14]">
+            <div className="flex-1 bg-[#0A0807]">
               <Editor
                 height="100%"
                 defaultLanguage="python"
@@ -191,43 +191,43 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
         <div className="lg:col-span-4 space-y-4 flex flex-col h-[560px]">
           
           {/* Dataset Info Card */}
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] text-xs font-mono space-y-2">
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] text-xs font-sans space-y-2">
             <h4 className="font-bold text-gray-200 uppercase flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-[#d4af37]" />
+              <Database className="w-3.5 h-3.5 text-[#E9DFCB]" />
               Industrial Dataset Telemetry
             </h4>
             <div className="grid grid-cols-2 gap-2 text-center pt-1">
-              <div className="p-2 rounded bg-[#0d121d] border border-[#23304d]">
+              <div className="p-2 rounded bg-[#0A0807] border border-[#352D27]">
                 <div className="text-[10px] text-gray-500">Train Rows</div>
                 <div className="text-sm font-bold text-white">7,000</div>
               </div>
-              <div className="p-2 rounded bg-[#0d121d] border border-[#23304d]">
+              <div className="p-2 rounded bg-[#0A0807] border border-[#352D27]">
                 <div className="text-[10px] text-gray-500">Test Predictions</div>
-                <div className="text-sm font-bold text-[#00e5ff]">1,500</div>
+                <div className="text-sm font-bold text-[#E9DFCB]">1,500</div>
               </div>
             </div>
           </div>
 
           {/* Benchmark Score Tiers */}
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] text-xs font-mono space-y-2">
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] text-xs font-sans space-y-2">
             <h4 className="font-bold text-gray-200 uppercase flex items-center gap-1.5">
               <Award className="w-3.5 h-3.5 text-amber-400" />
               Scoring Accuracy Brackets
             </h4>
             <div className="space-y-1 text-[11px] text-gray-400">
-              <div className="flex justify-between py-0.5 border-b border-[#23304d]">
+              <div className="flex justify-between py-0.5 border-b border-[#352D27]">
                 <span>&le; 2.0% Overall Error</span>
                 <span className="text-emerald-400 font-bold">10.0 pts</span>
               </div>
-              <div className="flex justify-between py-0.5 border-b border-[#23304d]">
+              <div className="flex justify-between py-0.5 border-b border-[#352D27]">
                 <span>&le; 5.0% Overall Error</span>
                 <span className="text-emerald-400 font-bold">9.5 pts</span>
               </div>
-              <div className="flex justify-between py-0.5 border-b border-[#23304d]">
+              <div className="flex justify-between py-0.5 border-b border-[#352D27]">
                 <span>&le; 10.0% Overall Error</span>
-                <span className="text-[#00e5ff] font-bold">8.5 pts</span>
+                <span className="text-[#E9DFCB] font-bold">8.5 pts</span>
               </div>
-              <div className="flex justify-between py-0.5 border-b border-[#23304d]">
+              <div className="flex justify-between py-0.5 border-b border-[#352D27]">
                 <span>&le; 20.0% Overall Error</span>
                 <span className="text-amber-400 font-bold">6.0 pts</span>
               </div>
@@ -239,14 +239,14 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
           </div>
 
           {/* Execution & Benchmark Results Panel */}
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] flex-1 overflow-y-auto font-mono text-xs space-y-3">
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] flex-1 overflow-y-auto font-sans text-xs space-y-3">
             <h4 className="font-bold text-gray-200 uppercase flex items-center gap-1.5">
-              <BarChart3 className="w-3.5 h-3.5 text-[#00e5ff]" />
+              <BarChart3 className="w-3.5 h-3.5 text-[#E9DFCB]" />
               Evaluation Benchmark Feedback
             </h4>
 
             {evalResult ? (
-              <div className="space-y-3 animate-fadeIn">
+              <div className="space-y-3 animate-rise">
                 <div className={`p-3 rounded-lg border ${
                   evalResult.passed 
                     ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300" 
@@ -258,7 +258,7 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
                   </div>
                   <p>{evalResult.message}</p>
                   {evalResult.score_awarded !== undefined && (
-                    <div className="mt-2 text-base font-black text-[#d4af37]">
+                    <div className="mt-2 text-base font-bold text-[#E9DFCB]">
                       Score Awarded: +{evalResult.score_awarded} / 10.0 pts
                     </div>
                   )}
@@ -270,13 +270,13 @@ export default function Game5PrintingPress({ onStageComplete, dashboard, onRefre
                     <img 
                       src={`data:image/png;base64,${evalResult.image}`} 
                       alt="Telemetry Plot" 
-                      className="w-full rounded-lg border border-[#23304d]"
+                      className="w-full rounded-lg border border-[#352D27]"
                     />
                   </div>
                 )}
 
                 {evalResult.stdout && (
-                  <div className="p-2.5 rounded bg-[#080c14] border border-[#23304d] text-gray-300 whitespace-pre-wrap text-[11px]">
+                  <div className="p-2.5 rounded bg-[#0A0807] border border-[#352D27] text-gray-300 whitespace-pre-wrap font-mono text-[11px]">
                     {evalResult.stdout}
                   </div>
                 )}

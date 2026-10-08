@@ -33,20 +33,20 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-4xl glass-panel-glow rounded-2xl border border-[#23304d] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-rise">
+      <div className="relative w-full max-w-4xl glass-panel-glow rounded-2xl border border-[#352D27] overflow-hidden flex flex-col max-h-[85vh]">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#23304d] bg-[#111726]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#352D27] bg-[#161210]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
+              <h2 className="text-base font-bold text-white font-sans uppercase tracking-wider">
                 Phase 1 Leaderboard — Heist + Arena
               </h2>
-              <p className="text-xs text-gray-400 font-mono">
+              <p className="text-xs text-gray-400 font-sans">
                 Live Server Rankings // Auto-refreshes every 8s
               </p>
             </div>
@@ -56,14 +56,14 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
             <button
               onClick={fetchLeaderboard}
               disabled={loading}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161f33] transition"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161210] transition"
               title="Refresh"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#d4af37]" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#E9DFCB]" : ""}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161f33] transition"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161210] transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -72,9 +72,9 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
 
         {/* Table Content */}
         <div className="p-6 overflow-y-auto flex-1">
-          <div className="bg-[#111726] rounded-xl border border-[#23304d] overflow-hidden">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#161f33] text-gray-400 border-b border-[#23304d]">
+          <div className="bg-[#161210] rounded-xl border border-[#352D27] overflow-hidden">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-[#161210] text-gray-400 border-b border-[#352D27]">
                 <tr>
                   <th className="py-3 px-3.5 text-center w-16">Rank</th>
                   <th className="py-3 px-3.5">Team Operative</th>
@@ -85,10 +85,10 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                   <th className="py-3 px-3.5 text-right">Total Score</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#23304d]">
+              <tbody className="divide-y divide-[#352D27]">
                 {leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan="14" className="py-8 text-center text-gray-500 font-mono">
+                    <td colSpan="14" className="py-8 text-center text-gray-500 font-sans">
                       No active operatives registered yet.
                     </td>
                   </tr>
@@ -120,22 +120,22 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                       <tr
                         key={entry.team_id}
                         className={`transition ${
-                          isCurrent ? "bg-[#d4af37]/15 font-semibold text-white border-l-4 border-l-[#d4af37]" : "hover:bg-[#161f33]/60"
+                          isCurrent ? "bg-[#D2362B]/15 font-semibold text-white border-l-4 border-l-[#D2362B]" : "hover:bg-[#161210]/60"
                         }`}
                       >
                         <td className="py-3 px-3.5 text-center">{rankBadge}</td>
                         <td className="py-3 px-3.5 font-bold">
-                          <span className={isCurrent ? "text-[#d4af37]" : "text-white"}>
+                          <span className={isCurrent ? "text-[#D2362B]" : "text-white"}>
                             {entry.team_name}
                           </span>
                           {isCurrent && (
-                            <span className="ml-2 text-[10px] px-1.5 py-0.2 rounded bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 uppercase">
+                            <span className="ml-2 text-[10px] px-1.5 py-0.2 rounded bg-[#D2362B]/20 text-[#E9DFCB] border border-[#D2362B]/40 uppercase">
                               YOU
                             </span>
                           )}
                         </td>
                         <td className="py-3 px-3.5 text-center">
-                          <span className="px-2 py-0.5 rounded bg-[#161f33] border border-[#23304d] text-gray-300">
+                          <span className="px-2 py-0.5 rounded bg-[#161210] border border-[#352D27] text-gray-300">
                             {entry.current_stage > 10 ? "DONE" : `G${entry.current_stage}`}
                           </span>
                         </td>
@@ -144,7 +144,7 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                             {entry.stage_scores?.[`stage_${n}`] ? `+${entry.stage_scores[`stage_${n}`].toFixed(1)}` : "—"}
                           </td>
                         ))}
-                        <td className="py-3 px-3.5 text-right font-black text-sm text-[#d4af37]">
+                        <td className="py-3 px-3.5 text-right font-bold text-sm text-[#E9DFCB]">
                           {entry.total_score.toFixed(2)}
                           <span className="text-[10px] text-gray-500 font-normal ml-1">pts</span>
                         </td>
@@ -158,11 +158,11 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#23304d] bg-[#111726] flex items-center justify-between text-xs font-mono text-gray-400">
+        <div className="px-6 py-3 border-t border-[#352D27] bg-[#161210] flex items-center justify-between text-xs font-sans text-gray-400">
           <span>Synced with FastAPI Server | Last updated: {lastUpdated || "now"}</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] text-gray-200 border border-[#23304d]"
+            className="px-4 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] text-gray-200 border border-[#352D27]"
           >
             Close
           </button>

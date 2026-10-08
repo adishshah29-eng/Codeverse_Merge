@@ -97,27 +97,27 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
   );
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-rise">
       
       {/* Game Title & Professor Briefing Banner */}
-      <div className="p-5 rounded-2xl glass-panel-glow border border-[#d4af37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl glass-panel-glow border border-[#D2362B]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-[#d4af37] font-bold uppercase tracking-wider">
-            <span className="px-2 py-0.5 rounded bg-[#d4af37]/20 border border-[#d4af37]/40">STAGE 01</span>
+          <div className="flex items-center gap-2 text-xs font-sans text-[#E9DFCB] font-bold uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded bg-[#D2362B]/20 border border-[#D2362B]/40">STAGE 01</span>
             <span>LOGIC & CRYPTOGRAPHY</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-display font-semibold text-white tracking-tight mt-1">
             EL CODIGO ROJO: Vault Breach
           </h2>
-          <p className="text-xs text-gray-400 font-mono mt-1 max-w-2xl">
-            Neutralize the Royal Mint outer vault tumbler lock. Deduce the <span className="text-[#d4af37]">Door</span>, the <span className="text-[#d4af37]">Witness</span>, and the <span className="text-[#d4af37]">Metal Lot</span> from intercepted intelligence, apply the Professor's key shift, and crack the 6-digit PIN.
+          <p className="text-xs text-gray-400 font-sans mt-1 max-w-2xl">
+            Neutralize the Royal Mint outer vault tumbler lock. Deduce the <span className="text-[#E9DFCB]">Door</span>, the <span className="text-[#E9DFCB]">Witness</span>, and the <span className="text-[#E9DFCB]">Metal Lot</span> from intercepted intelligence, apply the Professor's key shift, and crack the 6-digit PIN.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-xl bg-[#111726] border border-[#23304d] text-center font-mono">
+          <div className="px-4 py-2 rounded-xl bg-[#161210] border border-[#352D27] text-center font-sans">
             <div className="text-[10px] text-gray-400 uppercase">Target Score</div>
-            <div className="text-sm font-extrabold text-[#d4af37]">10.00 pts</div>
+            <div className="text-sm font-extrabold text-[#E9DFCB]">10.00 pts</div>
           </div>
         </div>
       </div>
@@ -128,10 +128,10 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
         {/* Left Column: Evidence Dossier (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
           
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] space-y-3">
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-gray-300 uppercase">
-                <FileText className="w-4 h-4 text-[#d4af37]" />
+              <div className="flex items-center gap-2 text-xs font-sans font-bold text-gray-300 uppercase">
+                <FileText className="w-4 h-4 text-[#E9DFCB]" />
                 <span>Intercepted Intelligence Dossier</span>
               </div>
               <div className="relative">
@@ -140,7 +140,7 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
                   placeholder="Filter dossier text..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-2.5 py-1 text-xs font-mono rounded-lg bg-[#0d121d] border border-[#23304d] text-white focus:outline-none focus:border-[#d4af37]"
+                  className="px-2.5 py-1 text-xs font-sans rounded-lg bg-[#0A0807] border border-[#352D27] text-white focus:outline-none focus:border-[#D2362B]"
                 />
               </div>
             </div>
@@ -153,10 +153,10 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
                   <button
                     key={doc.id}
                     onClick={() => setSelectedDoc(doc)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium whitespace-nowrap border transition ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-medium whitespace-nowrap border transition ${
                       isSelected 
-                        ? "bg-[#d4af37]/20 border-[#d4af37] text-white shadow-md shadow-[#d4af37]/10" 
-                        : "bg-[#111726] border-[#23304d] text-gray-400 hover:text-white"
+                        ? "bg-[#D2362B]/20 border-[#D2362B] text-white" 
+                        : "bg-[#161210] border-[#352D27] text-gray-400 hover:text-white"
                     }`}
                   >
                     #{doc.id}: {doc.title}
@@ -167,29 +167,29 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
 
             {/* Document Viewer */}
             {selectedDoc ? (
-              <div className="p-4 rounded-xl bg-[#090d14] border border-[#23304d] font-mono text-xs text-gray-300 space-y-3">
-                <div className="flex items-center justify-between border-b border-[#23304d] pb-2 text-[11px] text-gray-500">
+              <div className="p-4 rounded-xl bg-[#0A0807] border border-[#352D27] font-sans text-xs text-gray-300 space-y-3">
+                <div className="flex items-center justify-between border-b border-[#352D27] pb-2 text-[11px] text-gray-500">
                   <span>CLASSIFICATION: {selectedDoc.metadata?.classification || "RESTRICTED"}</span>
                   <span>SOURCE: {selectedDoc.metadata?.source || "ARCHIVE"}</span>
                 </div>
-                <div className="whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto pr-2 selection:bg-[#d4af37]/40 selection:text-white">
+                <div className="font-mono text-[13px] whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto pr-2 selection:bg-[#D2362B]/40 selection:text-white">
                   {selectedDoc.body}
                 </div>
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500 font-mono text-xs">
+              <div className="p-8 text-center text-gray-500 font-sans text-xs">
                 No document selected.
               </div>
             )}
           </div>
 
           {/* Deductions Helper Box */}
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] space-y-2">
-            <h4 className="text-xs font-mono font-bold text-gray-300 uppercase flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5 text-[#00e5ff]" />
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] space-y-2">
+            <h4 className="text-xs font-sans font-bold text-gray-300 uppercase flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5 text-[#E9DFCB]" />
               Professor's Tactical Clues
             </h4>
-            <ul className="text-xs font-mono text-gray-400 space-y-1 list-disc list-inside">
+            <ul className="text-xs font-sans text-gray-400 space-y-1 list-disc list-inside">
               <li><strong className="text-gray-200">Shift count</strong>: The number of keys physically carried by voices on the intercepted channel.</li>
               <li><strong className="text-gray-200">Door Panel</strong>: The audit shift swap assigned to Quill (Tomas Herrera, Badge 4471).</li>
               <li><strong className="text-gray-200">Witness Tag</strong>: Camera evidence tag showing Quill at his panel on 08 OCT.</li>
@@ -203,34 +203,34 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
         <div className="lg:col-span-5 space-y-6">
           
           {/* Caesar Shift Calculator */}
-          <div className="glass-panel p-4 rounded-xl border border-[#23304d] space-y-3">
+          <div className="glass-panel p-4 rounded-xl border border-[#352D27] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-gray-300 uppercase flex items-center gap-1.5">
-                <Binary className="w-4 h-4 text-[#d4af37]" />
+              <span className="text-xs font-sans font-bold text-gray-300 uppercase flex items-center gap-1.5">
+                <Binary className="w-4 h-4 text-[#E9DFCB]" />
                 Caesar Digit Shift Terminal
               </span>
-              <span className="text-[11px] font-mono text-gray-500">Wrap Mod 10</span>
+              <span className="text-[11px] font-sans text-gray-500">Wrap Mod 10</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
-                <label className="text-[10px] text-gray-400 font-mono block mb-1">Value (2 digits)</label>
+                <label className="text-[10px] text-gray-400 font-sans block mb-1">Value (2 digits)</label>
                 <input
                   type="text"
                   placeholder="e.g. 38"
                   maxLength={4}
                   value={cipherInput}
                   onChange={(e) => setCipherInput(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-[#0d121d] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-1.5 rounded-lg bg-[#0A0807] border border-[#352D27] text-white text-xs font-sans focus:outline-none focus:border-[#D2362B]"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 font-mono block mb-1">Shift (+N)</label>
+                <label className="text-[10px] text-gray-400 font-sans block mb-1">Shift (+N)</label>
                 <input
                   type="number"
                   value={cipherShift}
                   onChange={(e) => setCipherShift(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-[#0d121d] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
+                  className="w-full px-3 py-1.5 rounded-lg bg-[#0A0807] border border-[#352D27] text-white text-xs font-sans focus:outline-none focus:border-[#D2362B]"
                 />
               </div>
             </div>
@@ -239,12 +239,12 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
               <button
                 type="button"
                 onClick={handleCipherCompute}
-                className="px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs font-mono text-[#d4af37] font-bold"
+                className="px-3 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-xs font-sans text-[#E9DFCB] font-bold"
               >
                 Apply Shift &rarr;
               </button>
               {cipherOutput && (
-                <div className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/40 px-3 py-1 rounded border border-emerald-500/30">
+                <div className="text-xs font-sans text-emerald-400 font-bold bg-emerald-950/40 px-3 py-1 rounded border border-emerald-500/30">
                   Shifted: {cipherOutput}
                 </div>
               )}
@@ -252,16 +252,16 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
           </div>
 
           {/* Interactive Mechanical Vault Keypad */}
-          <div className="glass-panel-glow p-6 rounded-2xl border border-[#23304d] text-center space-y-4">
+          <div className="glass-panel-glow p-6 rounded-2xl border border-[#352D27] text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
-              <Lock className="w-5 h-5 text-[#d4af37]" />
-              <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
+              <Lock className="w-5 h-5 text-[#E9DFCB]" />
+              <h3 className="text-sm font-bold text-white font-sans uppercase tracking-wider">
                 Vault Master Combination
               </h3>
             </div>
 
             {/* PIN Display Screen */}
-            <div className="py-3 px-4 rounded-xl bg-[#080c14] border-2 border-[#23304d] tracking-[0.5em] font-mono text-2xl font-black text-[#d4af37] flex items-center justify-center min-h-[56px] shadow-inner">
+            <div className="py-3 px-4 rounded-xl bg-[#0A0807] border-2 border-[#352D27] tracking-[0.5em] font-sans text-2xl font-bold text-[#E9DFCB] flex items-center justify-center min-h-[56px] shadow-inner">
               {pin.padEnd(6, "•")}
             </div>
 
@@ -272,7 +272,7 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
                   key={num}
                   type="button"
                   onClick={() => handleKeypadPress(num.toString())}
-                  className="h-12 rounded-xl bg-[#111726] hover:bg-[#1c273e] active:scale-95 border border-[#23304d] text-white font-mono font-bold text-lg transition shadow-md"
+                  className="h-12 rounded-xl bg-[#161210] hover:bg-[#1F1A17] active:scale-95 border border-[#352D27] text-white font-sans font-bold text-lg transition"
                 >
                   {num}
                 </button>
@@ -280,14 +280,14 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
               <button
                 type="button"
                 onClick={handleKeypadClear}
-                className="h-12 rounded-xl bg-rose-950/30 hover:bg-rose-900/50 active:scale-95 border border-rose-900/40 text-rose-400 font-mono text-xs font-bold transition"
+                className="h-12 rounded-xl bg-rose-950/30 hover:bg-rose-900/50 active:scale-95 border border-rose-900/40 text-rose-400 font-sans text-xs font-bold transition"
               >
                 CLR
               </button>
               <button
                 type="button"
                 onClick={() => handleKeypadPress("0")}
-                className="h-12 rounded-xl bg-[#111726] hover:bg-[#1c273e] active:scale-95 border border-[#23304d] text-white font-mono font-bold text-lg transition shadow-md"
+                className="h-12 rounded-xl bg-[#161210] hover:bg-[#1F1A17] active:scale-95 border border-[#352D27] text-white font-sans font-bold text-lg transition"
               >
                 0
               </button>
@@ -295,10 +295,10 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
                 type="button"
                 disabled={submitting || pin.length !== 6}
                 onClick={handleKeypadSubmit}
-                className={`h-12 rounded-xl border text-xs font-mono font-bold transition flex items-center justify-center ${
+                className={`h-12 rounded-xl border text-xs font-sans font-bold transition flex items-center justify-center ${
                   pin.length === 6
-                    ? "bg-[#d4af37] hover:bg-[#b89628] text-black border-[#d4af37] shadow-lg shadow-[#d4af37]/30"
-                    : "bg-[#111726] border-[#23304d] text-gray-500 cursor-not-allowed"
+                    ? "bg-[#D2362B] hover:bg-[#B22B21] text-white border-[#D2362B]"
+                    : "bg-[#161210] border-[#352D27] text-gray-500 cursor-not-allowed"
                 }`}
               >
                 {submitting ? "..." : "OPEN"}
@@ -307,7 +307,7 @@ export default function Game1VaultBreach({ onStageComplete, dashboard, onRefresh
 
             {/* Feedback Message */}
             {feedback && (
-              <div className={`p-3 rounded-xl text-xs font-mono border animate-fadeIn ${
+              <div className={`p-3 rounded-xl text-xs font-sans border animate-rise ${
                 feedback.passed 
                   ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300" 
                   : "bg-rose-950/60 border-rose-500/50 text-rose-300"

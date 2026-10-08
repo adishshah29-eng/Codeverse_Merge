@@ -92,26 +92,26 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-rise">
       
       {/* Stage Header */}
-      <div className="p-5 rounded-2xl glass-panel-glow border border-[#d4af37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl glass-panel-glow border border-[#D2362B]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-sans text-purple-400 font-bold uppercase tracking-wider">
             <span className="px-2 py-0.5 rounded bg-purple-950/40 border border-purple-500/40">STAGE 03</span>
             <span>WEB FORENSICS & REVERSE ENGINEERING</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-display font-semibold text-white tracking-tight mt-1">
             Hidden Blueprint: The Professor's Override
           </h2>
-          <p className="text-xs text-gray-400 font-mono mt-1 max-w-2xl">
+          <p className="text-xs text-gray-400 font-sans mt-1 max-w-2xl">
             Infiltrate the sealed 1963 Royal Mint archives. Use built-in DevTools forensic inspection (DOM, Styles, Network Relay, Application Storage) to uncover the hidden fragment and unseal the blueprint extraction code.
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-[#111726] border border-[#23304d] text-center font-mono">
+        <div className="px-4 py-2 rounded-xl bg-[#161210] border border-[#352D27] text-center font-sans">
           <div className="text-[10px] text-gray-400 uppercase">Max Score</div>
-          <div className="text-sm font-extrabold text-[#d4af37]">10.00 pts</div>
+          <div className="text-sm font-extrabold text-[#E9DFCB]">10.00 pts</div>
         </div>
       </div>
 
@@ -120,15 +120,15 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
         
         {/* Left Column: Simulated Archive Terminal & DevTools (8 Cols) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="glass-panel rounded-2xl border border-[#23304d] overflow-hidden flex flex-col">
+          <div className="glass-panel rounded-2xl border border-[#352D27] overflow-hidden flex flex-col">
             
             {/* DevTools Tab Bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-[#0f1422] border-b border-[#23304d]">
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-mono">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#0A0807] border-b border-[#352D27]">
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-sans">
                 <button
                   onClick={() => setActiveTab("elements")}
                   className={`px-3 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                    activeTab === "elements" ? "bg-[#1c273e] text-[#d4af37] font-bold" : "text-gray-400 hover:text-white"
+                    activeTab === "elements" ? "bg-[#1F1A17] text-[#E9DFCB] font-bold" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Code className="w-3.5 h-3.5" /> Elements & DOM
@@ -136,7 +136,7 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                 <button
                   onClick={() => setActiveTab("styles")}
                   className={`px-3 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                    activeTab === "styles" ? "bg-[#1c273e] text-[#d4af37] font-bold" : "text-gray-400 hover:text-white"
+                    activeTab === "styles" ? "bg-[#1F1A17] text-[#E9DFCB] font-bold" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <FileCode className="w-3.5 h-3.5" /> Styles (CSS)
@@ -144,7 +144,7 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                 <button
                   onClick={() => setActiveTab("network")}
                   className={`px-3 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                    activeTab === "network" ? "bg-[#1c273e] text-[#d4af37] font-bold" : "text-gray-400 hover:text-white"
+                    activeTab === "network" ? "bg-[#1F1A17] text-[#E9DFCB] font-bold" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Network className="w-3.5 h-3.5" /> Network (API)
@@ -152,32 +152,32 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                 <button
                   onClick={() => setActiveTab("storage")}
                   className={`px-3 py-1 rounded-lg transition flex items-center gap-1.5 ${
-                    activeTab === "storage" ? "bg-[#1c273e] text-[#d4af37] font-bold" : "text-gray-400 hover:text-white"
+                    activeTab === "storage" ? "bg-[#1F1A17] text-[#E9DFCB] font-bold" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <Database className="w-3.5 h-3.5" /> LocalStorage
                 </button>
               </div>
 
-              <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">
+              <span className="text-[10px] text-gray-500 font-sans hidden sm:inline">
                 DevTools Inspector v3.7
               </span>
             </div>
 
             {/* Inspector Canvas */}
-            <div className="p-5 bg-[#090d14] min-h-[360px] font-mono text-xs space-y-4">
+            <div className="p-5 bg-[#0A0807] min-h-[360px] font-sans text-xs space-y-4">
               
               {activeTab === "elements" && (
                 <div className="space-y-3 text-gray-300">
-                  <div className="p-3 rounded-lg bg-[#0d121d] border border-[#23304d] text-emerald-400">
+                  <div className="p-3 rounded-lg bg-[#0A0807] border border-[#352D27] text-emerald-400">
                     &lt;!-- ARCHIVE NOTE 17: The visible page is incomplete. Search for "ledger". --&gt;
                   </div>
-                  <div className="space-y-1.5 pl-3 border-l-2 border-[#23304d]">
+                  <div className="space-y-1.5 pl-3 border-l-2 border-[#352D27]">
                     <div className="text-gray-400">&lt;main class="mint-archives"&gt;</div>
                     <div className="pl-4 text-gray-300">
                       &lt;div class="archive-header"&gt;...&lt;/div&gt;
                     </div>
-                    <div className="pl-4 text-[#d4af37] bg-[#d4af37]/10 p-2 rounded border border-[#d4af37]/30">
+                    <div className="pl-4 text-[#E9DFCB] bg-[#D2362B]/10 p-2 rounded border border-[#D2362B]/30">
                       &lt;div id="archive-ledger" hidden data-next="/archive/ledger"&gt;&lt;/div&gt;
                     </div>
                     <div className="pl-4 text-purple-300">
@@ -195,25 +195,25 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
 
               {activeTab === "styles" && (
                 <div className="space-y-4 text-gray-300">
-                  <div className="p-4 rounded-xl bg-[#0d121d] border border-[#23304d] space-y-2">
+                  <div className="p-4 rounded-xl bg-[#0A0807] border border-[#352D27] space-y-2">
                     <span className="text-gray-500 text-[11px]">/* main.css: Archivist override note */</span>
-                    <pre className="text-purple-300 font-mono">
+                    <pre className="text-purple-300 font-mono text-xs">
 {`.archive-access {
   display: ${cssOverridden ? "block /* OVERRIDDEN BY OPERATIVE */" : "none;"}
-  background: #d4af37;
+  background: #D2362B;
   color: black;
 }`}
                     </pre>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#111726] border border-[#23304d]">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#161210] border border-[#352D27]">
                     <span className="text-xs text-gray-300">Override CSS display property to unhide access relay:</span>
                     <button
                       onClick={() => setCssOverridden(!cssOverridden)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition ${
                         cssOverridden 
                           ? "bg-emerald-600 text-white" 
-                          : "bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-[#d4af37]"
+                          : "bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-[#E9DFCB]"
                       }`}
                     >
                       {cssOverridden ? "CSS Injected: display: block" : "Override: Unhide Button"}
@@ -221,11 +221,11 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                   </div>
 
                   {cssOverridden && (
-                    <div className="p-4 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/40 flex items-center justify-between">
+                    <div className="p-4 rounded-xl bg-[#D2362B]/10 border border-[#D2362B]/40 flex items-center justify-between">
                       <span className="text-white font-bold">Relay Access Control Terminal Activated</span>
                       <button
                         onClick={handlePing}
-                        className="px-4 py-2 rounded-lg bg-[#d4af37] text-black font-bold shadow-lg shadow-[#d4af37]/20 hover:scale-105 transition"
+                        className="px-4 py-2 rounded-lg bg-[#D2362B] text-white font-bold transition"
                       >
                         Click Archive Relay &rarr;
                       </button>
@@ -239,42 +239,42 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handlePing}
-                      className="px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs text-[#00e5ff]"
+                      className="px-3 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-xs text-[#E9DFCB]"
                     >
                       POST /api/archive/ping
                     </button>
                     <button
                       onClick={handleFetchManifest}
-                      className="px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs text-emerald-400"
+                      className="px-3 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-xs text-emerald-400"
                     >
                       GET /api/archive/manifest
                     </button>
                     <button
                       onClick={handleFetchPress}
-                      className="px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs text-amber-400"
+                      className="px-3 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-xs text-amber-400"
                     >
                       GET /api/archive/press
                     </button>
                   </div>
 
                   {pingData && (
-                    <div className="p-3 rounded-xl bg-[#0d121d] border border-[#23304d]">
-                      <div className="text-[11px] text-[#00e5ff] font-bold mb-1">Ping Response:</div>
-                      <pre className="text-gray-300 overflow-x-auto">{JSON.stringify(pingData, null, 2)}</pre>
+                    <div className="p-3 rounded-xl bg-[#0A0807] border border-[#352D27]">
+                      <div className="text-[11px] text-[#E9DFCB] font-bold mb-1">Ping Response:</div>
+                      <pre className="font-mono text-xs text-gray-300 overflow-x-auto">{JSON.stringify(pingData, null, 2)}</pre>
                     </div>
                   )}
 
                   {manifestData && (
-                    <div className="p-3 rounded-xl bg-[#0d121d] border border-[#23304d]">
+                    <div className="p-3 rounded-xl bg-[#0A0807] border border-[#352D27]">
                       <div className="text-[11px] text-emerald-400 font-bold mb-1">Manifest Response:</div>
-                      <pre className="text-gray-300 overflow-x-auto">{JSON.stringify(manifestData, null, 2)}</pre>
+                      <pre className="font-mono text-xs text-gray-300 overflow-x-auto">{JSON.stringify(manifestData, null, 2)}</pre>
                     </div>
                   )}
 
                   {pressData && (
-                    <div className="p-3 rounded-xl bg-[#0d121d] border border-[#23304d]">
+                    <div className="p-3 rounded-xl bg-[#0A0807] border border-[#352D27]">
                       <div className="text-[11px] text-amber-400 font-bold mb-1">Press Room Response:</div>
-                      <pre className="text-gray-300 overflow-x-auto">{JSON.stringify(pressData, null, 2)}</pre>
+                      <pre className="font-mono text-xs text-gray-300 overflow-x-auto">{JSON.stringify(pressData, null, 2)}</pre>
                       <div className="text-emerald-400 text-[11px] mt-2 font-bold">
                         Notice "next": "storage" &rarr; Inspect Application Storage tab!
                       </div>
@@ -286,18 +286,18 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
               {activeTab === "storage" && (
                 <div className="space-y-3">
                   <div className="text-gray-400 text-xs mb-2">Browser LocalStorage Key-Value Storage:</div>
-                  <div className="bg-[#0d121d] rounded-xl border border-[#23304d] overflow-hidden">
+                  <div className="bg-[#0A0807] rounded-xl border border-[#352D27] overflow-hidden">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-[#161f33] text-gray-400 border-b border-[#23304d]">
+                      <thead className="bg-[#161210] text-gray-400 border-b border-[#352D27]">
                         <tr>
                           <th className="py-2 px-3">Storage Key</th>
                           <th className="py-2 px-3">Value</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#23304d]">
+                      <tbody className="divide-y divide-[#352D27]">
                         {Object.entries(storageData).map(([k, v]) => (
-                          <tr key={k} className={k === "mint_fragment" ? "bg-[#d4af37]/15 font-bold text-white" : ""}>
-                            <td className="py-2 px-3 text-[#d4af37]">{k}</td>
+                          <tr key={k} className={k === "mint_fragment" ? "bg-[#D2362B]/15 font-bold text-white" : ""}>
+                            <td className="py-2 px-3 text-[#E9DFCB]">{k}</td>
                             <td className="py-2 px-3 text-gray-300 font-bold">{v}</td>
                           </tr>
                         ))}
@@ -319,16 +319,16 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
         <div className="lg:col-span-4 space-y-4">
           
           {/* Blueprint Query Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-[#23304d] space-y-4">
+          <div className="glass-panel p-5 rounded-2xl border border-[#352D27] space-y-4">
             <div className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-[#d4af37]" />
-              <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
+              <Key className="w-5 h-5 text-[#E9DFCB]" />
+              <h3 className="text-sm font-bold text-white font-sans uppercase tracking-wider">
                 Blueprint Vault Query
               </h3>
             </div>
 
             <div>
-              <label className="text-[10px] text-gray-400 font-mono block mb-1">
+              <label className="text-[10px] text-gray-400 font-sans block mb-1">
                 Recovered Fragment Key
               </label>
               <div className="flex gap-2">
@@ -337,12 +337,12 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                   placeholder="e.g. 17-04"
                   value={fragmentInput}
                   onChange={(e) => setFragmentInput(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-[#0d121d] border border-[#23304d] text-white text-xs font-mono focus:outline-none focus:border-[#d4af37]"
+                  className="flex-1 px-3 py-1.5 rounded-lg bg-[#0A0807] border border-[#352D27] text-white text-xs font-sans focus:outline-none focus:border-[#D2362B]"
                 />
                 <button
                   type="button"
                   onClick={handleUnlockBlueprint}
-                  className="px-3 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-xs font-mono text-[#d4af37] font-bold"
+                  className="px-3 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-xs font-sans text-[#E9DFCB] font-bold"
                 >
                   Retrieve
                 </button>
@@ -350,11 +350,11 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
             </div>
 
             {blueprintCode && (
-              <div className="p-3.5 rounded-xl bg-[#090d14] border-2 border-emerald-500/50 text-center font-mono space-y-1">
+              <div className="p-3.5 rounded-xl bg-[#0A0807] border-2 border-emerald-500/50 text-center font-sans space-y-1">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase">
                   CLASSIFIED BLUEPRINT RECOVERED
                 </span>
-                <div className="text-2xl font-black text-white tracking-widest text-[#d4af37]">
+                <div className="text-2xl font-bold text-white tracking-wider text-[#E9DFCB]">
                   {blueprintCode}
                 </div>
                 <span className="text-[10px] text-gray-500 block">Royal Mint 1963 Extraction Key</span>
@@ -363,14 +363,14 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
           </div>
 
           {/* Extraction Code Clearance Submission */}
-          <div className="glass-panel-glow p-5 rounded-2xl border border-[#23304d] space-y-4">
-            <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#00e5ff]" />
+          <div className="glass-panel-glow p-5 rounded-2xl border border-[#352D27] space-y-4">
+            <h3 className="text-sm font-bold text-white font-sans uppercase tracking-wider flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#E9DFCB]" />
               Extraction Code Clearance
             </h3>
 
             <div>
-              <label className="text-[10px] text-gray-400 font-mono block mb-1">
+              <label className="text-[10px] text-gray-400 font-sans block mb-1">
                 Final Extraction Code
               </label>
               <input
@@ -378,24 +378,24 @@ export default function Game3HiddenBlueprint({ onStageComplete, dashboard, onRef
                 placeholder="RM-XXXXXX"
                 value={submissionCode}
                 onChange={(e) => setSubmissionCode(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d14] border border-[#23304d] text-white text-sm font-mono font-bold tracking-widest uppercase focus:outline-none focus:border-[#d4af37]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0807] border border-[#352D27] text-white text-sm font-sans font-bold tracking-wider uppercase focus:outline-none focus:border-[#D2362B]"
               />
             </div>
 
             <button
               onClick={handleSubmitFinalCode}
               disabled={submitting || !submissionCode}
-              className={`w-full py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+              className={`w-full py-2.5 rounded-xl font-sans text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
                 submissionCode
-                  ? "bg-gradient-to-r from-[#d4af37] to-[#b89628] hover:from-[#e5bd3d] hover:to-[#c5a02e] text-black shadow-lg shadow-[#d4af37]/20"
-                  : "bg-[#161f33] text-gray-500 border border-[#23304d] cursor-not-allowed"
+                  ? "bg-red text-white"
+                  : "bg-[#161210] text-gray-500 border border-[#352D27] cursor-not-allowed"
               }`}
             >
               {submitting ? "Verifying Archive..." : "Authenticate Extraction"}
             </button>
 
             {feedback && (
-              <div className={`p-3 rounded-xl border text-xs font-mono animate-fadeIn ${
+              <div className={`p-3 rounded-xl border text-xs font-sans animate-rise ${
                 feedback.passed 
                   ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300" 
                   : "bg-rose-950/60 border-rose-500/50 text-rose-300"

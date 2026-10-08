@@ -2,69 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Phase 1 theme — black / red / beige / white. Tokens live in tailwind.config.js; see docs/UI_REVISION_PLAN.md. */
+
 :root {
   color-scheme: dark;
+  --ink: #0d0b0a;
+  --coal: #161210;
+  --coal-2: #1f1a17;
+  --rule: #352d27;
+  --beige: #e9dfcb;
+  --red: #d2362b;
 }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  padding: 0;
-  background-color: #07090e;
-  color: #e2e8f0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--ink);
+  color: var(--beige);
+  font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0d121d;
-}
-::-webkit-scrollbar-thumb {
-  background: #23304d;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #d4af37;
-}
+h1, h2, h3 { font-family: "Fraunces", Georgia, serif; letter-spacing: -0.01em; color: #fff; }
 
-/* Glassmorphism panels */
-.glass-panel {
-  background: rgba(17, 23, 38, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(212, 175, 55, 0.15);
-}
+::selection { background: var(--red); color: #fff; }
+:focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; }
 
-.glass-panel-glow {
-  background: rgba(17, 23, 38, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.08);
-}
+button, a, input, textarea, select { transition: color .12s, background-color .12s, border-color .12s; }
+button:disabled { cursor: not-allowed; }
 
-.glass-crimson {
-  background: rgba(22, 10, 15, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 9, 20, 0.25);
-  box-shadow: 0 0 25px rgba(229, 9, 20, 0.1);
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: #5c5148; }
 
-/* CRT Scanline Overlay */
-.crt-overlay {
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.35) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.03),
-    rgba(0, 255, 0, 0.01),
-    rgba(0, 0, 255, 0.03)
-  );
-  background-size: 100% 3px, 3px 100%;
-  pointer-events: none;
+/* The old glass / glow classes (still used by the Royal Mint screens) are now flat coal cards with a hairline. */
+.glass-panel, .glass-panel-glow, .glass-crimson {
+  background: var(--coal);
+  border: 1px solid var(--rule);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
+.glass-panel-glow { border-top: 3px solid var(--red); }
+.glass-crimson { border-color: var(--red); }
+.crt-overlay { display: none; }
+
+input, textarea, select { background: #0a0807; color: var(--beige); border-color: var(--rule); }
+input::placeholder, textarea::placeholder { color: #7a6d60; }
+input:focus, textarea:focus, select:focus { border-color: var(--beige); outline: none; box-shadow: 0 0 0 2px rgba(210, 54, 43, .35); }
+
+/* Code surfaces: darkest well, beige mono text */
+.code-surface {
+  background: #0a0807;
+  color: #e9dfcb;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  border: 1px solid var(--rule);
+}
+.code-surface:focus { border-color: var(--red); box-shadow: none; }
+
+/* Beige "paper" panel — long-form reading (briefs, guides) */
+.paper { background: var(--beige); color: #14100e; }
+.paper h1, .paper h2, .paper h3 { color: #14100e; }
+
+.label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #a89a88; }
+
+table { border-collapse: collapse; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

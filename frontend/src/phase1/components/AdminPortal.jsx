@@ -88,20 +88,20 @@ export default function AdminPortal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
-      <div className="relative w-full max-w-5xl glass-panel-glow rounded-2xl border border-rose-900/50 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85">
+      <div className="relative w-full max-w-5xl glass-panel-glow rounded-2xl border border-rose-900/50 overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-rose-950 bg-[#160a0e]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-rose-950 bg-[#2A0F0D]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
+              <h2 className="text-base font-bold text-white font-sans uppercase tracking-wider">
                 Professor Control Room // Tournament Admin
               </h2>
-              <p className="text-xs text-rose-300/80 font-mono">
+              <p className="text-xs text-rose-300/80 font-sans">
                 Full System Orchestration, Live Team Monitoring & Scoring Rules
               </p>
             </div>
@@ -111,14 +111,14 @@ export default function AdminPortal({ isOpen, onClose }) {
             <button
               onClick={loadData}
               disabled={loading}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161f33] transition"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161210] transition"
               title="Refresh Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-rose-400" : ""}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161f33] transition"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#161210] transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -126,10 +126,10 @@ export default function AdminPortal({ isOpen, onClose }) {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 px-6 pt-3 bg-[#111726] border-b border-[#23304d]">
+        <div className="flex items-center gap-2 px-6 pt-3 bg-[#161210] border-b border-[#352D27]">
           <button
             onClick={() => setActiveTab("teams")}
-            className={`px-4 py-2 font-mono text-xs font-bold border-b-2 transition ${
+            className={`px-4 py-2 font-sans text-xs font-bold border-b-2 transition ${
               activeTab === "teams" 
                 ? "border-rose-500 text-rose-400" 
                 : "border-transparent text-gray-400 hover:text-white"
@@ -139,7 +139,7 @@ export default function AdminPortal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setActiveTab("config")}
-            className={`px-4 py-2 font-mono text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 font-sans text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
               activeTab === "config" 
                 ? "border-rose-500 text-rose-400" 
                 : "border-transparent text-gray-400 hover:text-white"
@@ -149,7 +149,7 @@ export default function AdminPortal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setActiveTab("logs")}
-            className={`px-4 py-2 font-mono text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 font-sans text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
               activeTab === "logs" 
                 ? "border-rose-500 text-rose-400" 
                 : "border-transparent text-gray-400 hover:text-white"
@@ -163,7 +163,7 @@ export default function AdminPortal({ isOpen, onClose }) {
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           
           {actionMsg && (
-            <div className="p-3 rounded-lg bg-[#161f33] border border-[#23304d] text-xs font-mono text-rose-300 flex items-center gap-2">
+            <div className="p-3 rounded-lg bg-[#161210] border border-[#352D27] text-xs font-sans text-rose-300 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{actionMsg}</span>
             </div>
@@ -172,16 +172,16 @@ export default function AdminPortal({ isOpen, onClose }) {
           {activeTab === "teams" && (
             <>
               {/* Team accounts are created in the main admin dashboard (shared login) */}
-              <div className="p-4 rounded-xl bg-[#111726] border border-[#23304d] text-xs font-mono text-gray-300">
+              <div className="p-4 rounded-xl bg-[#161210] border border-[#352D27] text-xs font-sans text-gray-300">
                 Team accounts are created once for the whole event in the{" "}
-                <a href="/phase2/" className="text-[#d4af37] underline">main admin dashboard</a> (TEAM ACCOUNTS).
+                <a href="/phase2/" className="text-[#E9DFCB] underline">main admin dashboard</a> (TEAM ACCOUNTS).
                 A team appears here automatically when it first opens Phase 1.
               </div>
 
               {/* Teams Table */}
-              <div className="bg-[#111726] rounded-xl border border-[#23304d] overflow-hidden">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[#161f33] text-gray-400 border-b border-[#23304d]">
+              <div className="bg-[#161210] rounded-xl border border-[#352D27] overflow-hidden">
+                <table className="w-full text-left text-xs font-sans">
+                  <thead className="bg-[#161210] text-gray-400 border-b border-[#352D27]">
                     <tr>
                       <th className="py-2.5 px-3">Team Name</th>
                       <th className="py-2.5 px-3">Stage</th>
@@ -191,18 +191,18 @@ export default function AdminPortal({ isOpen, onClose }) {
                       <th className="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#23304d]">
+                  <tbody className="divide-y divide-[#352D27]">
                     {teams.map((t) => (
-                      <tr key={t.id} className="hover:bg-[#161f33]/60 transition">
+                      <tr key={t.id} className="hover:bg-[#161210]/60 transition">
                         <td className="py-2.5 px-3 font-bold text-white">
                           {t.name}
                         </td>
                         <td className="py-2.5 px-3">
-                          <span className="px-2 py-0.5 rounded bg-[#161f33] border border-[#23304d] text-[#00e5ff] font-bold">
+                          <span className="px-2 py-0.5 rounded bg-[#161210] border border-[#352D27] text-[#E9DFCB] font-bold">
                             {t.current_stage > 10 ? "FINISHED" : `Stage ${t.current_stage}`}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 font-bold text-[#d4af37]">
+                        <td className="py-2.5 px-3 font-bold text-[#E9DFCB]">
                           {t.total_score.toFixed(2)} pts
                         </td>
                         <td className="py-2.5 px-3 text-rose-400">
@@ -219,14 +219,14 @@ export default function AdminPortal({ isOpen, onClose }) {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleResetTeam(t.id, 1)}
-                              className="px-2 py-1 rounded bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-amber-400 text-[11px] flex items-center gap-1 transition"
+                              className="px-2 py-1 rounded bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-amber-400 text-[11px] flex items-center gap-1 transition"
                               title="Reset team to Stage 1"
                             >
                               <RotateCcw className="w-3 h-3" /> Reset
                             </button>
                             <button
                               onClick={() => handleToggleActive(t.id, t.is_active)}
-                              className="px-2 py-1 rounded bg-[#161f33] hover:bg-[#202c45] border border-[#23304d] text-gray-300 text-[11px] transition"
+                              className="px-2 py-1 rounded bg-[#161210] hover:bg-[#1F1A17] border border-[#352D27] text-gray-300 text-[11px] transition"
                               title={t.is_active ? "Deactivate Team" : "Activate Team"}
                             >
                               {t.is_active ? <UserX className="w-3 h-3 text-amber-500" /> : <UserCheck className="w-3 h-3 text-emerald-400" />}
@@ -251,12 +251,12 @@ export default function AdminPortal({ isOpen, onClose }) {
           {activeTab === "config" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-gray-300">
+                <span className="text-xs font-sans text-gray-300">
                   Live JSON Scoring Model (All game formulas, thresholds, duration, and error brackets):
                 </span>
                 <button
                   onClick={handleSaveConfig}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold transition shadow"
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-sans text-xs font-bold transition shadow"
                 >
                   Save Configuration
                 </button>
@@ -265,24 +265,24 @@ export default function AdminPortal({ isOpen, onClose }) {
                 value={configJson}
                 onChange={(e) => setConfigJson(e.target.value)}
                 rows={16}
-                className="w-full p-4 rounded-xl bg-[#090d14] border border-[#23304d] text-emerald-400 font-mono text-xs focus:outline-none focus:border-[#d4af37]"
+                className="w-full p-4 rounded-xl bg-[#0A0807] border border-[#352D27] text-beige font-mono text-xs focus:outline-none focus:border-[#D2362B]"
               />
             </div>
           )}
 
           {activeTab === "logs" && (
-            <div className="bg-[#111726] rounded-xl border border-[#23304d] overflow-hidden">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#161f33] text-gray-400 border-b border-[#23304d]">
+            <div className="bg-[#161210] rounded-xl border border-[#352D27] overflow-hidden">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-[#161210] text-gray-400 border-b border-[#352D27]">
                   <tr>
                     <th className="py-2 px-3">Timestamp</th>
                     <th className="py-2 px-3">Action</th>
                     <th className="py-2 px-3">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#23304d]">
+                <tbody className="divide-y divide-[#352D27]">
                   {auditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-[#161f33]/40">
+                    <tr key={log.id} className="hover:bg-[#161210]/40">
                       <td className="py-2 px-3 text-gray-500">{new Date(log.created_at).toLocaleTimeString()}</td>
                       <td className="py-2 px-3 font-bold text-white">{log.action}</td>
                       <td className="py-2 px-3 text-gray-300 max-w-md truncate">
@@ -298,11 +298,11 @@ export default function AdminPortal({ isOpen, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#23304d] bg-[#111726] flex items-center justify-between text-xs font-mono text-gray-400">
+        <div className="px-6 py-3 border-t border-[#352D27] bg-[#161210] flex items-center justify-between text-xs font-sans text-gray-400">
           <span>FastAPI Administrative Security Engine Active</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-[#161f33] hover:bg-[#202c45] text-gray-200 border border-[#23304d]"
+            className="px-4 py-1.5 rounded-lg bg-[#161210] hover:bg-[#1F1A17] text-gray-200 border border-[#352D27]"
           >
             Close Admin
           </button>
