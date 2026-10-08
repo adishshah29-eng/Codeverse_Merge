@@ -20,7 +20,7 @@ CTF_XOR_FLAG = os.environ.get("PHASE1_CTF_XOR_FLAG", CTF_FLAG)
 TECHNIQUE = [r"strings|ltrace|ghidra|objdump|disassembl|gdb|radare|r2\b|ida\b|strcmp|breakpoint|xor|decompil|static|dynamic"]
 
 META = {
-    "id": 3,
+    "id": 8,
     "title": "CTF — pull the password out of the binary",
     "domain": "Security / reverse engineering",
     "difficulty": "Medium",

@@ -1,10 +1,25 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Header from "./components/Header";
 import TeamDashboardModal from "./components/TeamDashboardModal";
 import LeaderboardModal from "./components/LeaderboardModal";
 import AdminPortal from "./components/AdminPortal";
 
+import Game1VaultBreach from "./games/Game1VaultBreach";
+import Game2AlarmSystem from "./games/Game2AlarmSystem";
+import Game3HiddenBlueprint from "./games/Game3HiddenBlueprint";
+import Game4MintMap from "./games/Game4MintMap";
+import Game5PrintingPress from "./games/Game5PrintingPress";
 import ChallengeStage from "./games/ChallengeStage";
+
+// Stages 1-5: Royal Mint Heist (original games). Stages 6-10: Challenge Arena (generic challenge screen).
+const TOTAL_STAGES = 10;
+const LEGACY_GAMES = {
+  1: Game1VaultBreach,
+  2: Game2AlarmSystem,
+  3: Game3HiddenBlueprint,
+  4: Game4MintMap,
+  5: Game5PrintingPress,
+};
 
 import { authApi, progressApi } from "./api";
 import { Trophy, CheckCircle2, ShieldCheck, Flame, ArrowRight } from "lucide-react";
@@ -18,6 +33,7 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [phaseError, setPhaseError] = useState("");
+  const firstLoad = useRef(true);
 
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -50,15 +66,19 @@ export default function App() {
       setDashboard(data);
       setTeam({ id: data.team_id, name: data.team_name });
       // Auto-set to current active stage if valid
-      if (data.current_stage <= 5) {
+      if (data.current_stage <= TOTAL_STAGES) {
+        // On the first load open the team's current stage (not stage 1, which may be finished).
+        const isFirst = firstLoad.current;
+        firstLoad.current = false;
         setActiveStageId((prev) => {
+          if (isFirst) return data.current_stage;
           // If active stage is already manually set to an unlocked one, keep it; else set current
           const targetObj = data.stages.find((s) => s.stage_id === prev);
           if (targetObj && targetObj.status !== "LOCKED") return prev;
           return data.current_stage;
         });
       } else {
-        setActiveStageId(5);
+        setActiveStageId(TOTAL_STAGES);
       }
     } catch (err) {
       console.error("Dashboard fetch error:", err);
@@ -85,7 +105,7 @@ export default function App() {
     setActiveStageId(stageId);
   };
 
-  const isMissionComplete = dashboard?.current_stage > 5;
+  const isMissionComplete = dashboard?.current_stage > TOTAL_STAGES;
 
   return (
     <div className="min-h-screen bg-[#07090e] text-gray-100 flex flex-col font-['Inter',sans-serif]">
@@ -129,13 +149,13 @@ export default function App() {
 
             <div className="space-y-2">
               <span className="text-xs font-mono text-[#d4af37] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/30">
-                ALL FIVE CHALLENGES COMPLETE
+                ALL TEN STAGES COMPLETE
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
                 Phase 1 Complete
               </h2>
               <p className="text-sm text-gray-300 font-mono max-w-lg mx-auto">
-                Operative team <strong className="text-[#d4af37]">{team?.name}</strong> has finished all 5 Phase 1 challenges: optimization, debugging, reverse engineering, parsing and ML diagnosis.
+                Operative team <strong className="text-[#d4af37]">{team?.name}</strong> has completed the Royal Mint Heist and all five Challenge Arena problems.
               </p>
             </div>
 
@@ -146,7 +166,7 @@ export default function App() {
                 <div className="text-2xl font-black text-[#d4af37] mt-0.5">
                   {dashboard?.total_score.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-gray-500">out of 50.0 pts</div>
+                <div className="text-[10px] text-gray-500">out of 100.0 pts</div>
               </div>
               <div className="p-3.5 rounded-2xl bg-[#111726] border border-[#23304d]">
                 <div className="text-[10px] text-gray-400 uppercase">Rank</div>
@@ -174,17 +194,19 @@ export default function App() {
             </div>
           </div>
         ) : (
-          /* Render Active Challenge */
-          <ChallengeStage
-            key={activeStageId}
-            stageId={activeStageId}
-            dashboard={dashboard}
-            onRefresh={fetchDashboard}
-            onStageComplete={(nextStage) => {
+          /* Render the active stage */
+          (() => {
+            const onDone = (nextStage) => {
               fetchDashboard();
               if (nextStage) setActiveStageId(nextStage);
-            }}
-          />
+            };
+            const Legacy = LEGACY_GAMES[activeStageId];
+            return Legacy ? (
+              <Legacy key={activeStageId} onStageComplete={onDone} dashboard={dashboard} onRefresh={fetchDashboard} />
+            ) : (
+              <ChallengeStage key={activeStageId} stageId={activeStageId} dashboard={dashboard} onRefresh={fetchDashboard} onStageComplete={onDone} />
+            );
+          })()
         )}
 
       </main>
@@ -211,7 +233,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-[#23304d] py-3 px-6 text-center text-xs font-mono text-gray-500">
-        CODEVERSE 2.0 &bull; Phase 1 Challenge Arena &bull; FastAPI + React.js + SQLite
+        CODEVERSE 2.0 &bull; Phase 1: Royal Mint Heist + Challenge Arena &bull; FastAPI + React.js + SQLite
       </footer>
 
     </div>

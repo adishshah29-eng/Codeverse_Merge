@@ -4,7 +4,7 @@ One platform for both CODEVERSE competition phases:
 
 | Phase | Name | Stages | Page |
 | --- | --- | --- | --- |
-| 1 | **Challenge Arena** | URL Shortener · TODO API Bug Hunt · CTF Binary · Spreadsheet Engine · Linear Regression | `/phase1/` |
+| 1 | **Royal Mint Heist + Challenge Arena** | Stages 1–5: Vault Breach · Alarm System · Hidden Blueprint · Mint Map · Printing Press. Stages 6–10: URL Shortener · TODO API Bug Hunt · CTF Binary · Spreadsheet Engine · Linear Regression | `/phase1/` |
 | 2 | **Operación Fuga** | Money Trail · Control Server · Outrun the Police · Final Extraction (+ Black Market) | `/phase2/` |
 
 > **SQLite edition** (branch `claude/repo-work-wd3ehi-sqlite`): everything is stored in a single
@@ -62,8 +62,9 @@ This repository was created by merging
 │   │   ├── games/              # Phase 2 game engines
 │   │   └── phase1/             # Phase 1  (/api/phase1/...)
 │   │       ├── core/           #   config, SQLite store, progression, scoring
-│   │       ├── games/          #   one grader per stage (g1..g5) + sandbox.py (isolated code execution)
-│   │       ├── routers/        #   endpoints (generic brief / handout / submit / finalize per stage)
+│   │       ├── games/          #   g1_vault_breach … g5_printing_press (stages 1-5), g1_url_shortener … g5_regression (stages 6-10), sandbox.py
+│   │       ├── routers/        #   legacy_games.py (stages 1-5) + games.py (generic brief / handout / submit / finalize for 6-10)
+│   │       ├── data/           #   stage 1-5 challenge data, ML datasets, private answer key
 │   │       └── deps.py         #   maps the logged-in team to its Phase 1 record
 │   ├── requirements.txt
 │   ├── gunicorn.conf.py

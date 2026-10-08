@@ -1,0 +1,393 @@
+{
+  "challenge_id": "codeverse-2-0-royal-mint-v1",
+  "_warning": "PRIVATE. Never bundle, serve, or log this file's contents to clients.",
+  "people": [
+    {
+      "id": "herrera",
+      "name": "Tomas Herrera",
+      "initials": "T.H.",
+      "role": "vault_systems",
+      "badge": "4471",
+      "alias": "Quill"
+    },
+    {
+      "id": "quintana",
+      "name": "Marta Quintana",
+      "initials": "M.Q.",
+      "role": "vault_systems",
+      "badge": "3902",
+      "alias": null
+    },
+    {
+      "id": "ortega",
+      "name": "Ines Ortega",
+      "initials": "I.O.",
+      "role": "vault_systems",
+      "badge": "2716",
+      "alias": null
+    },
+    {
+      "id": "hale",
+      "name": "Tessa Hale",
+      "initials": "T.H.",
+      "role": "security",
+      "badge": "5530",
+      "alias": null
+    },
+    {
+      "id": "hidalgo",
+      "name": "Teodoro Hidalgo",
+      "initials": "T.H.",
+      "role": "catering",
+      "badge": "6018",
+      "alias": null
+    },
+    {
+      "id": "bellamy",
+      "name": "Dario Bellamy",
+      "initials": "D.B.",
+      "role": "audit",
+      "badge": "7290",
+      "alias": null
+    }
+  ],
+  "voices": [
+    {
+      "callsign": "Cinder",
+      "carries_key": true
+    },
+    {
+      "callsign": "Lantern",
+      "carries_key": true
+    },
+    {
+      "callsign": "Ferryman",
+      "carries_key": true
+    },
+    {
+      "callsign": "Quill",
+      "carries_key": false
+    },
+    {
+      "callsign": "Saffron",
+      "carries_key": false,
+      "on_channel": false
+    },
+    {
+      "callsign": "Marisol",
+      "carries_key": false,
+      "on_channel": false,
+      "note": "dead key, lock changed in August"
+    }
+  ],
+  "alias_clue": {
+    "alias": "Quill",
+    "initials": "T.H.",
+    "role": "vault_systems",
+    "took_swap": true
+  },
+  "target_date_rule": {
+    "kind": "nth_weekday",
+    "month": "2026-10",
+    "weekday": "Thursday",
+    "n": 2
+  },
+  "swaps": [
+    {
+      "id": "SW-1008",
+      "date": "2026-10-08",
+      "covers": "ortega",
+      "cover_by": "herrera"
+    },
+    {
+      "id": "SW-1015",
+      "date": "2026-10-15",
+      "covers": "quintana",
+      "cover_by": "ortega"
+    }
+  ],
+  "assignments": [
+    {
+      "date": "2026-10-01",
+      "panel": 52,
+      "person": "herrera"
+    },
+    {
+      "date": "2026-10-01",
+      "panel": 41,
+      "person": "quintana"
+    },
+    {
+      "date": "2026-10-01",
+      "panel": 38,
+      "person": "ortega"
+    },
+    {
+      "date": "2026-10-08",
+      "panel": 52,
+      "person": null
+    },
+    {
+      "date": "2026-10-08",
+      "panel": 41,
+      "person": "quintana"
+    },
+    {
+      "date": "2026-10-08",
+      "panel": 38,
+      "person": "ortega"
+    },
+    {
+      "date": "2026-10-08",
+      "panel": 19,
+      "person": "bellamy"
+    },
+    {
+      "date": "2026-10-15",
+      "panel": 52,
+      "person": "herrera"
+    },
+    {
+      "date": "2026-10-15",
+      "panel": 41,
+      "person": "ortega"
+    },
+    {
+      "date": "2026-10-15",
+      "panel": 38,
+      "person": null
+    }
+  ],
+  "frames": [
+    {
+      "tag": 11,
+      "date": "2026-10-01",
+      "badge": "4471",
+      "location": "Panel 52"
+    },
+    {
+      "tag": 14,
+      "date": "2026-10-08",
+      "badge": "3902",
+      "location": "Panel 41"
+    },
+    {
+      "tag": 19,
+      "date": "2026-10-08",
+      "badge": "5530",
+      "location": "Gallery C"
+    },
+    {
+      "tag": 20,
+      "date": "2026-10-08",
+      "badge": null,
+      "location": "Panel 38"
+    },
+    {
+      "tag": 25,
+      "date": "2026-10-08",
+      "badge": "4471",
+      "location": "Panel 38"
+    },
+    {
+      "tag": 31,
+      "date": "2026-10-01",
+      "badge": "4471",
+      "location": "Muster point"
+    },
+    {
+      "tag": 38,
+      "date": "2026-09-24",
+      "badge": "4471",
+      "location": "Panel 38"
+    },
+    {
+      "tag": 42,
+      "date": "2026-10-08",
+      "badge": "4471",
+      "location": "Staff Canteen"
+    },
+    {
+      "tag": 45,
+      "date": "2026-10-08",
+      "badge": null,
+      "location": null
+    }
+  ],
+  "lots": [
+    {
+      "lot": 29,
+      "series": "Anniversary",
+      "casting": 1,
+      "seal": "blue",
+      "status": "active"
+    },
+    {
+      "lot": 47,
+      "series": "Anniversary",
+      "casting": 2,
+      "seal": "scarlet",
+      "status": "active"
+    },
+    {
+      "lot": 58,
+      "series": "Heritage 2019",
+      "casting": null,
+      "seal": "scarlet",
+      "status": "melted"
+    },
+    {
+      "lot": 63,
+      "series": "Medals",
+      "casting": null,
+      "seal": null,
+      "status": "active"
+    }
+  ],
+  "seal_synonyms": {
+    "red": [
+      "red",
+      "scarlet",
+      "crimson"
+    ]
+  },
+  "cipher": {
+    "type": "digit_shift",
+    "shift_source": "keys_carried_on_line",
+    "wrap_modulus": 10,
+    "explanation_clue_id": "05"
+  },
+  "ordering": [
+    "door",
+    "witness",
+    "metal"
+  ],
+  "solution": {
+    "extracted_values": {
+      "door": 38,
+      "witness": 25,
+      "metal": 47
+    },
+    "transformed_values": {
+      "door": "61",
+      "witness": "58",
+      "metal": "70"
+    },
+    "shift": 3,
+    "final_code": "615870"
+  },
+  "needles": [
+    {
+      "evidence": "01",
+      "text": "three keys on this line"
+    },
+    {
+      "evidence": "01",
+      "text": "Three of us sign our forms T.H."
+    },
+    {
+      "evidence": "01",
+      "text": "I run vault systems"
+    },
+    {
+      "evidence": "01",
+      "text": "took the night-shift swap"
+    },
+    {
+      "evidence": "01",
+      "text": "second Thursday of October"
+    },
+    {
+      "evidence": "01",
+      "text": "red-wax batch"
+    },
+    {
+      "evidence": "01",
+      "text": "second pour of the Anniversary bars"
+    },
+    {
+      "evidence": "01",
+      "text": "One camera frame of Quill at his panel"
+    },
+    {
+      "evidence": "02",
+      "text": "SW-1008 // 08 OCT // Ortega on approved leave. Cover: T. Herrera"
+    },
+    {
+      "evidence": "02",
+      "text": "Panel 38 - I. Ortega - Vault Systems - see swap SW-1008"
+    },
+    {
+      "evidence": "02",
+      "text": "Badge 4471 - Tomas Herrera - Vault Systems Technician"
+    },
+    {
+      "evidence": "02",
+      "text": "THURSDAY 08 OCT 2026"
+    },
+    {
+      "evidence": "03",
+      "text": "scarlet seal and described by the Governor as the one people will remember, was catalogued as Lot 47"
+    },
+    {
+      "evidence": "03",
+      "text": "cobalt-blue seal, was catalogued as Lot 29"
+    },
+    {
+      "evidence": "03",
+      "text": "melted down in March"
+    },
+    {
+      "evidence": "03",
+      "text": "THURSDAY 1 OCTOBER 2026"
+    },
+    {
+      "evidence": "04",
+      "text": "EV-25 | CAM-06 | 08 OCT 2026 21:56    | Badge 4471 at Panel 38"
+    },
+    {
+      "evidence": "04",
+      "text": "EV-38 | CAM-06 | 24 SEP 2026 22:15"
+    },
+    {
+      "evidence": "05",
+      "text": "one step forward for every key carried on the line"
+    },
+    {
+      "evidence": "05",
+      "text": "the door first, the witness second, the metal last"
+    }
+  ],
+  "hints": [
+    {
+      "id": 1,
+      "title": "READ BETWEEN THE LINES",
+      "multiplier": 0.95,
+      "text": "Three kinds of evidence carry the numbers you need: a workplace post, a tagged photograph, and a consignment. Most other numbers are noise."
+    },
+    {
+      "id": 2,
+      "title": "FOLLOW THE CONNECTION",
+      "multiplier": 0.9,
+      "text": "Quill signs his forms T.H., but several people share those initials. His job and the shift swap identify him. Then follow the swap to whose post he covered."
+    },
+    {
+      "id": 3,
+      "title": "THE PROFESSOR'S RULE",
+      "multiplier": 0.85,
+      "text": "The shift is the number of keys actually carried by voices on the intercepted line. Ignore anyone who only listens, brings coffee, or holds a dead key. Add it to every digit, wrapping past nine."
+    }
+  ],
+  "scoring": {
+    "base": 1000,
+    "min_time_multiplier": 0.6,
+    "wrong_attempt_multiplier": 0.95,
+    "speed_bonus_points": 50,
+    "speed_bonus_fraction": 0.5,
+    "check_limit": 3,
+    "check_penalty_seconds": 30,
+    "attempt_limit": 3,
+    "raw_max": 1050,
+    "display_max": 10
+  }
+}

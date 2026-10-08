@@ -29,6 +29,7 @@ from .phase1.core.sqlite_store import create_schema as create_phase1_schema  # n
 from .phase1.games.sandbox import log_sandbox_status  # noqa: E402
 from .phase1.routers import admin as p1_admin  # noqa: E402
 from .phase1.routers import games as p1_games  # noqa: E402
+from .phase1.routers import legacy_games as p1_legacy_games  # noqa: E402
 from .phase1.routers import leaderboard as p1_leaderboard  # noqa: E402
 from .phase1.routers import progression as p1_progression  # noqa: E402
 
@@ -317,9 +318,12 @@ for router in (stages.router, hints.router, money_trail.router, ctf.router,
                police.router, extraction.router, market.router):
     app.include_router(router, dependencies=phase2)
 
-# ── Phase 1 (Challenge Arena) — served at /api/phase1/* ─────────────────────
+# ── Phase 1 (Royal Mint Heist stages 1-5 + Challenge Arena stages 6-10) — served at /api/phase1/* ─────────────────────
 phase1 = [Depends(require_phase(1))]
 app.include_router(p1_progression.router, prefix="/api/phase1", dependencies=phase1)
+# Stages 1-5 (Royal Mint Heist) keep their original endpoints; they must be registered first so
+# /games/{n}/submit for n<=5 reaches them. Stages 6-10 use the generic brief/handout/submit/finalize routes.
+app.include_router(p1_legacy_games.router, prefix="/api/phase1", dependencies=phase1)
 app.include_router(p1_games.router, prefix="/api/phase1", dependencies=phase1)
 app.include_router(p1_leaderboard.router, prefix="/api/phase1")
 app.include_router(p1_admin.router, prefix="/api/phase1")

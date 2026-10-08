@@ -1,4 +1,6 @@
-# Phase 1 problem set — five challenges
+# Phase 1 problem set — the five Challenge Arena problems (platform stages 6–10)
+
+(Stages 1–5 of Phase 1 are the original Royal Mint Heist games; their data lives in `backend/app/phase1/data/`.)
 
 Each problem folder has the same layout:
 
@@ -8,13 +10,13 @@ pNN_name/
   organizer/   answer key, reference solution, graders, hidden data (server-side only)
 ```
 
-| # | Folder | Domain | Handout | Reference answer | Platform grader |
+| Stage | Folder | Domain | Handout | Reference answer | Platform grader |
 |---|---|---|---|---|---|
-| 1 | `p1_url_shortener` | Systems / optimization | slow `shortener.py`, `test_correctness.py`, `loadtest.py` | `organizer/solution_shortener.py` (≈95× faster) | `backend/app/phase1/games/g1_url_shortener.py` |
-| 2 | `p2_todo_bugs` | Debugging | full FastAPI app (3 planted bugs) + pytest suite | `organizer/solution/app/`, `ANSWER_KEY.md` | `g2_todo_bugs.py` |
-| 3 | `p3_ctf` | Security / reversing | `stage1`, `stage1_xor` binaries | `organizer/ANSWER_KEY.md`, C sources, `build.sh` | `g3_ctf.py` |
-| 4 | `p4_spreadsheet` | Parsing / graphs | pygame grid UI + `engine.py` stub + public tests | `organizer/solution_engine.py`, `grade_engine.py` | `g4_spreadsheet.py` |
-| 5 | `p5_regression` | ML / diagnosis | `housing.csv`, `housing_test.csv`, `starter.py` | `organizer/solution.py`, `gen_housing.py`, `ANSWER_KEY.md` | `g5_regression.py` |
+| 6 | `p1_url_shortener` | Systems / optimization | slow `shortener.py`, `test_correctness.py`, `loadtest.py` | `organizer/solution_shortener.py` (≈95× faster) | `backend/app/phase1/games/g1_url_shortener.py` |
+| 7 | `p2_todo_bugs` | Debugging | full FastAPI app (3 planted bugs) + pytest suite | `organizer/solution/app/`, `ANSWER_KEY.md` | `g2_todo_bugs.py` |
+| 8 | `p3_ctf` | Security / reversing | `stage1`, `stage1_xor` binaries | `organizer/ANSWER_KEY.md`, C sources, `build.sh` | `g3_ctf.py` |
+| 9 | `p4_spreadsheet` | Parsing / graphs | pygame grid UI + `engine.py` stub + public tests | `organizer/solution_engine.py`, `grade_engine.py` | `g4_spreadsheet.py` |
+| 10 | `p5_regression` | ML / diagnosis | `housing.csv`, `housing_test.csv`, `starter.py` | `organizer/solution.py`, `gen_housing.py`, `ANSWER_KEY.md` | `g5_regression.py` |
 
 **Keep `organizer/` private.** If you share this repository with participants, move the `organizer/` folders out first
 — the grading server reads them from `competition/*/organizer/`, so keep them on the server only (e.g. hand teams just the `handout/` folders or the zips from the stage pages).

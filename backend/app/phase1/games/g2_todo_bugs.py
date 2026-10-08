@@ -30,7 +30,7 @@ NOTE_PATTERNS = {
 }
 
 META = {
-    "id": 2,
+    "id": 7,
     "title": "FastAPI TODO repo — bust the bugs",
     "domain": "Debugging",
     "difficulty": "Easy → Hard (3 bugs)",

@@ -20,17 +20,17 @@ export default function TeamDashboardModal({
 
   const currentStageId = dashboard.current_stage;
   const currentStageObj = dashboard.stages.find((s) => s.stage_id === currentStageId);
-  const isMissionComplete = currentStageId > 5;
+  const isMissionComplete = currentStageId > 10;
 
   const handleSkipStage = async () => {
-    if (!currentStageId || currentStageId > 5) return;
+    if (!currentStageId || currentStageId > 10) return;
     setSkipLoading(true);
     setErrorMsg("");
     try {
       await progressApi.skipStage(currentStageId);
       setShowSkipConfirm(false);
       await onRefresh();
-      onStageChange(Math.min(5, currentStageId + 1));
+      onStageChange(Math.min(10, currentStageId + 1));
     } catch (err) {
       setErrorMsg(err.message || "Failed to skip stage.");
     } finally {
@@ -79,7 +79,7 @@ export default function TeamDashboardModal({
             <div className="bg-[#111726] p-3.5 rounded-xl border border-[#23304d]">
               <div className="text-[11px] text-gray-400 font-mono uppercase">Total Points</div>
               <div className="text-xl font-black text-[#d4af37] font-mono mt-0.5">
-                {dashboard.total_score.toFixed(2)} <span className="text-xs text-gray-500">/ 50.0</span>
+                {dashboard.total_score.toFixed(2)} <span className="text-xs text-gray-500">/ 100.0</span>
               </div>
             </div>
 
@@ -114,7 +114,7 @@ export default function TeamDashboardModal({
           {/* Stages Breakdown Table */}
           <div>
             <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono mb-3">
-              Progression Matrix (Strict Order: 1 &rarr; 2 &rarr; 3 &rarr; 4 &rarr; 5)
+              Progression Matrix (Strict Order: stages 1 &rarr; 10)
             </h3>
             <div className="bg-[#111726] rounded-xl border border-[#23304d] overflow-hidden">
               <table className="w-full text-left text-xs font-mono">

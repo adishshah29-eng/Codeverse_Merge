@@ -200,12 +200,14 @@ class ProgressionEngine:
     @staticmethod
     def unlock_hint(team_id: str, stage_id: int, hint_index: int) -> Dict[str, Any]:
         progress = ProgressionEngine.verify_stage_access(team_id, stage_id)
-        texts = hint_texts(stage_id)
-        if not 0 <= hint_index < len(texts):
+        texts = hint_texts(stage_id)       # empty for the original Royal Mint stages (hints live in their UI)
+        legacy = stage_id <= settings.LEGACY_STAGES
+        if not legacy and not 0 <= hint_index < len(texts):
             raise HTTPException(status_code=404, detail="No such hint for this stage.")
+        hint_text = texts[hint_index] if 0 <= hint_index < len(texts) else None
         hints = decode_json(progress["hints_used"], [])
         if hint_index in hints:
-            return {"success": True, "hint_index": hint_index, "already_unlocked": True, "text": texts[hint_index]}
+            return {"success": True, "hint_index": hint_index, "already_unlocked": True, "text": hint_text}
         hints.append(hint_index)
         hints.sort()
         config = get_scoring_config().get(f"game_{stage_id}", {})
@@ -215,9 +217,10 @@ class ProgressionEngine:
             "hints_used": hints,
             "penalty_points": float(progress["penalty_points"] or 0.0) + penalty,
         })
-        ProgressionEngine.refresh_stage_score(team_id, stage_id)
+        if not legacy:
+            ProgressionEngine.refresh_stage_score(team_id, stage_id)
         log_audit("HINT_UNLOCKED", {"stage_id": stage_id, "hint_index": hint_index, "penalty": penalty}, team_id)
-        return {"success": True, "hint_index": hint_index, "penalty": penalty, "hints_used": hints, "text": texts[hint_index]}
+        return {"success": True, "hint_index": hint_index, "penalty": penalty, "hints_used": hints, "text": hint_text}
 
     @staticmethod
     def refresh_stage_score(team_id: str, stage_id: int) -> float:
@@ -227,7 +230,7 @@ class ProgressionEngine:
         """
         from app.phase1.core.scoring import net_stage_score
         progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
-        if not progress or progress["status"] != "ACTIVE":
+        if not progress or progress["status"] != "ACTIVE" or stage_id <= settings.LEGACY_STAGES:
             return float(progress["score"]) if progress else 0.0
         meta = decode_json(progress["metadata"], {})
         net = net_stage_score(stage_id, float(meta.get("best_raw", 0.0)), int(progress["wrong_attempts"]),

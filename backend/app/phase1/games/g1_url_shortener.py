@@ -20,7 +20,7 @@ TARGET_SPEEDUP = 20.0
 TIMEOUT = 60
 
 META = {
-    "id": 1,
+    "id": 6,
     "title": "URL Shortener — make the slow one fast",
     "domain": "Systems / optimization",
     "difficulty": "Easy–Medium",

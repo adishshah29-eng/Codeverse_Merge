@@ -12,7 +12,7 @@ PROBLEM = "p4_spreadsheet"
 TIMEOUT = 60
 
 META = {
-    "id": 4,
+    "id": 9,
     "title": "Spreadsheet engine — formulas, references, cycles",
     "domain": "Parsing + dependency graphs",
     "difficulty": "Medium–Hard",

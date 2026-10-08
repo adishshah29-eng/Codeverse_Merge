@@ -2,11 +2,11 @@ from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 
 class HintRequest(BaseModel):
-    stage_id: int = Field(..., ge=1, le=5)
+    stage_id: int = Field(..., ge=1, le=10)
     hint_index: int = Field(..., ge=0, le=10)
 
 class SkipStageRequest(BaseModel):
-    stage_id: int = Field(..., ge=1, le=5)
+    stage_id: int = Field(..., ge=1, le=10)
     confirmation: bool = True
 
 class StageStatusResponse(BaseModel):
@@ -53,6 +53,33 @@ class LeaderboardResponse(BaseModel):
 
 IdempotencyKey = Field(..., min_length=1, max_length=128)
 MAX_CODE_CHARS = 100_000
+
+class Game1Submission(BaseModel):
+    idempotency_key: str = IdempotencyKey
+    final_code: str = Field(..., max_length=32)
+    extracted_door: Optional[int] = None
+    extracted_witness: Optional[int] = None
+    extracted_metal: Optional[int] = None
+    shift: Optional[int] = None
+
+class Game2Submission(BaseModel):
+    idempotency_key: str = IdempotencyKey
+    challenge_id: str = Field(..., max_length=64)
+    code: str = Field(..., max_length=MAX_CODE_CHARS)
+    time_spent_seconds: Optional[int] = 0  # ignored: elapsed time is computed server-side
+
+class Game3Submission(BaseModel):
+    idempotency_key: str = IdempotencyKey
+    extraction_code: str = Field(..., max_length=64)
+    blueprint_fragment: Optional[str] = Field(None, max_length=64)
+
+class Game4Submission(BaseModel):
+    idempotency_key: str = IdempotencyKey
+    route: List[int] = Field(..., max_length=64)
+
+class Game5Submission(BaseModel):
+    idempotency_key: str = IdempotencyKey
+    code: str = Field(..., max_length=MAX_CODE_CHARS)
 
 class StageSubmission(BaseModel):
     """One submission for any Phase 1 stage.

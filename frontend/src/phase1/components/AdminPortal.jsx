@@ -199,7 +199,7 @@ export default function AdminPortal({ isOpen, onClose }) {
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="px-2 py-0.5 rounded bg-[#161f33] border border-[#23304d] text-[#00e5ff] font-bold">
-                            {t.current_stage > 5 ? "FINISHED" : `Stage ${t.current_stage}`}
+                            {t.current_stage > 10 ? "FINISHED" : `Stage ${t.current_stage}`}
                           </span>
                         </td>
                         <td className="py-2.5 px-3 font-bold text-[#d4af37]">

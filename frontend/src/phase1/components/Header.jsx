@@ -36,6 +36,11 @@ export default function Header({
     { stage_id: 3, status: "LOCKED", score: 0 },
     { stage_id: 4, status: "LOCKED", score: 0 },
     { stage_id: 5, status: "LOCKED", score: 0 },
+    { stage_id: 6, status: "LOCKED", score: 0 },
+    { stage_id: 7, status: "LOCKED", score: 0 },
+    { stage_id: 8, status: "LOCKED", score: 0 },
+    { stage_id: 9, status: "LOCKED", score: 0 },
+    { stage_id: 10, status: "LOCKED", score: 0 },
   ];
 
   const totalScore = dashboard?.total_score || 0;
@@ -49,14 +54,14 @@ export default function Header({
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#d4af37] to-[#8c701b] p-0.5 shadow-lg shadow-[#d4af37]/20 flex items-center justify-center">
-              <span className="font-['Impact'] text-lg text-black tracking-wider">C1</span>
+              <span className="font-['Impact'] text-lg text-black tracking-wider">P1</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-sm tracking-wide text-white font-mono uppercase">
-                  Challenge Arena
+                <h1 className="font-bold text-sm tracking-wide text-white font-mono uppercase whitespace-nowrap">
+                  Heist &amp; Arena
                 </h1>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-[#e50914]/20 text-[#e50914] border border-[#e50914]/30">
+                <span className="whitespace-nowrap text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-[#e50914]/20 text-[#e50914] border border-[#e50914]/30">
                   Phase 1
                 </span>
               </div>
@@ -68,13 +73,13 @@ export default function Header({
 
           {/* Quick HUD Score for Mobile */}
           <div className="md:hidden flex items-center gap-2 text-xs font-mono bg-[#161f33] px-2 py-1 rounded border border-[#23304d]">
-            <span className="text-[#d4af37] font-bold">{totalScore.toFixed(1)}/50</span>
+            <span className="text-[#d4af37] font-bold">{totalScore.toFixed(1)}/100</span>
             <span className="text-gray-400">Rank: {rank}</span>
           </div>
         </div>
 
-        {/* Unified 5-Stage Stepper */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 bg-[#111726]/80 px-3 py-1.5 rounded-xl border border-[#23304d] overflow-x-auto max-w-full">
+        {/* Unified 10-Stage Stepper */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 bg-[#111726]/80 px-3 py-1.5 rounded-xl border border-[#23304d] flex-wrap justify-center max-w-full">
           {stages.map((st) => {
             const isCurrent = (dashboard?.current_stage === st.stage_id);
             const isSelected = (activeStageId === st.stage_id);
@@ -124,7 +129,7 @@ export default function Header({
             <div>
               <div className="text-[10px] text-gray-400 font-mono uppercase">Total Score</div>
               <div className="text-sm font-extrabold text-[#d4af37] font-mono">
-                {totalScore.toFixed(2)} <span className="text-xs text-gray-400">/ 50.0</span>
+                <span className="whitespace-nowrap">{totalScore.toFixed(2)} <span className="text-xs text-gray-400">/ 100.0</span></span>
               </div>
             </div>
             <div className="w-[1px] h-6 bg-[#23304d]" />

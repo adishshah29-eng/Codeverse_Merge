@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { X, Trophy, RefreshCw, Medal } from "lucide-react";
 import { leaderboardApi } from "../api";
 
+const STAGE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-white font-mono uppercase tracking-wider">
-                Phase 1 Leaderboard
+                Phase 1 Leaderboard — Heist + Arena
               </h2>
               <p className="text-xs text-gray-400 font-mono">
                 Live Server Rankings // Auto-refreshes every 8s
@@ -77,18 +79,16 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                   <th className="py-3 px-3.5 text-center w-16">Rank</th>
                   <th className="py-3 px-3.5">Team Operative</th>
                   <th className="py-3 px-3.5 text-center">Stage</th>
-                  <th className="py-3 px-2 text-center">G1</th>
-                  <th className="py-3 px-2 text-center">G2</th>
-                  <th className="py-3 px-2 text-center">G3</th>
-                  <th className="py-3 px-2 text-center">G4</th>
-                  <th className="py-3 px-2 text-center">G5</th>
+                  {STAGE_IDS.map((n) => (
+                    <th key={n} className="py-3 px-1.5 text-center">G{n}</th>
+                  ))}
                   <th className="py-3 px-3.5 text-right">Total Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#23304d]">
                 {leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500 font-mono">
+                    <td colSpan="14" className="py-8 text-center text-gray-500 font-mono">
                       No active operatives registered yet.
                     </td>
                   </tr>
@@ -136,24 +136,14 @@ export default function LeaderboardModal({ isOpen, onClose, currentTeamId }) {
                         </td>
                         <td className="py-3 px-3.5 text-center">
                           <span className="px-2 py-0.5 rounded bg-[#161f33] border border-[#23304d] text-gray-300">
-                            {entry.current_stage > 5 ? "DONE" : `G${entry.current_stage}`}
+                            {entry.current_stage > 10 ? "DONE" : `G${entry.current_stage}`}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-center text-gray-300">
-                          {entry.stage_scores?.stage_1 ? `+${entry.stage_scores.stage_1.toFixed(1)}` : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-center text-gray-300">
-                          {entry.stage_scores?.stage_2 ? `+${entry.stage_scores.stage_2.toFixed(1)}` : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-center text-gray-300">
-                          {entry.stage_scores?.stage_3 ? `+${entry.stage_scores.stage_3.toFixed(1)}` : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-center text-gray-300">
-                          {entry.stage_scores?.stage_4 ? `+${entry.stage_scores.stage_4.toFixed(1)}` : "—"}
-                        </td>
-                        <td className="py-3 px-2 text-center text-gray-300">
-                          {entry.stage_scores?.stage_5 ? `+${entry.stage_scores.stage_5.toFixed(1)}` : "—"}
-                        </td>
+                        {STAGE_IDS.map((n) => (
+                          <td key={n} className="py-3 px-1.5 text-center text-gray-300">
+                            {entry.stage_scores?.[`stage_${n}`] ? `+${entry.stage_scores[`stage_${n}`].toFixed(1)}` : "—"}
+                          </td>
+                        ))}
                         <td className="py-3 px-3.5 text-right font-black text-sm text-[#d4af37]">
                           {entry.total_score.toFixed(2)}
                           <span className="text-[10px] text-gray-500 font-normal ml-1">pts</span>
