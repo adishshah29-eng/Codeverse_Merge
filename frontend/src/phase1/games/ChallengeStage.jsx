@@ -34,6 +34,43 @@ function initialFiles(submit) {
   return (spec.names || []).map((path) => ({ path, content: "" }));
 }
 
+// The server sends the brief as plain text. Show it as short paragraphs, real bullet lists and a separate scoring note
+// instead of one wall of text.
+function BriefText({ text }) {
+  const blocks = (text || "").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  return (
+    <div className="mt-4 space-y-3 text-[14.5px] leading-relaxed text-ink/90">
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").map((l) => l.trim());
+        const bullets = lines.filter((l) => /^[•\-]/.test(l));
+        if (/^Scoring/i.test(block)) {
+          return (
+            <p key={i} className="border-t border-ink/25 pt-3 text-[13px] text-ink/70">{block}</p>
+          );
+        }
+        if (bullets.length === lines.length) {
+          return (
+            <ul key={i} className="list-disc pl-5 space-y-1">
+              {lines.map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}
+            </ul>
+          );
+        }
+        const intro = lines.filter((l) => !/^[•\-]/.test(l)).join(" ");
+        return (
+          <div key={i}>
+            {intro && <p>{intro}</p>}
+            {bullets.length > 0 && (
+              <ul className="mt-1.5 list-disc pl-5 space-y-1">
+                {bullets.map((l, j) => <li key={j}>{l.replace(/^[•\-]\s*/, "")}</li>)}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ChallengeStage({ stageId, onStageComplete, onRefresh }) {
   const [brief, setBrief] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -183,44 +220,45 @@ export default function ChallengeStage({ stageId, onStageComplete, onRefresh }) 
   const ghostBtn = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-beige-dim text-[13px] font-medium text-beige hover:bg-beige hover:text-ink disabled:opacity-40";
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-10 gap-y-8 animate-rise">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8 gap-y-6 animate-rise">
       {/* ── Reading column ── */}
-      <div className="lg:col-span-5 space-y-6">
+      <div className="lg:col-span-5 space-y-4">
         <section className="paper p-6 rounded-sm">
-          <p className="label !text-[#5c5047]">
-            Stage {stageId} <span className="mx-1.5 text-[#a89a88]">/</span> {brief.domain}
-            <span className="mx-1.5 text-[#a89a88]">/</span> {brief.difficulty}
-          </p>
+          <p className="label !text-[#5c5047]">{brief.domain} · {brief.difficulty}</p>
           <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-ink">{brief.title}</h2>
-          <div className="mt-4 text-[14.5px] leading-relaxed text-ink/90 whitespace-pre-wrap">{brief.brief}</div>
+          <BriefText text={brief.brief} />
         </section>
 
         <HandoutFiles stageId={stageId} spec={spec} disabled={closed} onUse={useInEditor} />
 
-        <section className="pt-1">
-          <h3 className="label">Hints <span className="normal-case tracking-normal font-normal text-beige-faint">· each one costs points</span></h3>
-          <div className="mt-3 space-y-2">
+        <details className="group border border-rule bg-coal">
+          <summary className="flex items-center justify-between cursor-pointer select-none px-4 py-3 text-sm text-beige list-none">
+            <span>Hints <span className="text-beige-faint">· {hints.length} of {brief.hints_total} used · each costs points</span></span>
+            <span className="text-beige-dim group-open:rotate-90 transition-transform" aria-hidden="true">›</span>
+          </summary>
+          <div className="px-4 pb-4 space-y-3 border-t border-rule pt-3">
             {hints.map((h) => (
-              <p key={h.index} className="text-sm border-l-2 border-red pl-3 py-0.5 text-beige">
-                <span className="font-semibold">Hint {h.index + 1}.</span> {h.text}
+              <p key={h.index} className="text-sm border-l-2 border-red pl-3 text-beige">
+                <span className="font-semibold text-white">Hint {h.index + 1}.</span> {h.text}
               </p>
             ))}
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: brief.hints_total }).map((_, index) => {
+                const unlocked = hints.some((h) => h.index === index);
+                if (unlocked) return null;
+                return (
+                  <button key={index} disabled={closed} onClick={() => unlockHint(index)} className={ghostBtn}>
+                    Reveal hint {index + 1} <span className="text-beige-dim">−{penalties[index] ?? 0.5}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Array.from({ length: brief.hints_total }).map((_, index) => {
-              const unlocked = hints.some((h) => h.index === index);
-              return (
-                <button key={index} disabled={unlocked || closed} onClick={() => unlockHint(index)} className={ghostBtn}>
-                  {unlocked ? `Hint ${index + 1} unlocked` : `Hint ${index + 1}  −${penalties[index] ?? 0.5}`}
-                </button>
-              );
-            })}
-          </div>
-        </section>
+        </details>
       </div>
 
       {/* ── Doing column ── */}
-      <div className="lg:col-span-7 space-y-6">
+      <div className="lg:col-span-7 space-y-4">
         <section id="submission-editor" className="bg-coal border border-rule border-t-4 border-t-red p-5 space-y-5">
           <div className="flex items-baseline justify-between gap-4">
             <h3 className="font-display text-xl font-semibold text-white">Your submission</h3>

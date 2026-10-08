@@ -10,7 +10,7 @@ import Game3HiddenBlueprint from "./games/Game3HiddenBlueprint";
 import Game4MintMap from "./games/Game4MintMap";
 import Game5PrintingPress from "./games/Game5PrintingPress";
 import ChallengeStage from "./games/ChallengeStage";
-import StageOverview from "./components/StageOverview";
+import StageBar from "./components/StageBar";
 
 // Stages 1-5: Royal Mint Heist (original games). Stages 6-10: Challenge Arena (generic challenge screen).
 const TOTAL_STAGES = 10;
@@ -119,12 +119,13 @@ export default function App() {
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenAdmin={isAdmin ? () => setIsAdminOpen(true) : null}
         onLogout={handleLogout}
-        onSelectStage={handleStageSelect}
-        activeStageId={activeStageId}
       />
+      {!isAdmin && !isMissionComplete && !loading && !phaseError && (
+        <StageBar dashboard={dashboard} activeStageId={activeStageId} onSelectStage={handleStageSelect} />
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
         
         {phaseError ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 font-sans text-sm text-[#E9DFCB]">
@@ -198,11 +199,10 @@ export default function App() {
           /* All games, then the active stage */
           <>
           {dashboard?.debug_unlock_all && (
-            <p className="mb-4 border-l-4 border-red bg-red-deep px-3 py-2 text-sm text-red-text">
-              <strong>Debug mode:</strong> every game is unlocked and replayable. Progress and scores are still recorded.
+            <p className="mb-6 text-sm text-red-text">
+              <strong>Debug mode</strong> — every game is unlocked and replayable. Scores are still recorded.
             </p>
           )}
-          <StageOverview dashboard={dashboard} activeStageId={activeStageId} onSelectStage={handleStageSelect} />
           {(() => {
             const onDone = (nextStage) => {
               fetchDashboard();
@@ -239,11 +239,6 @@ export default function App() {
         isOpen={isAdminOpen}
         onClose={() => (isAdmin ? window.location.assign("/") : setIsAdminOpen(false))}
       />
-
-      {/* Footer */}
-      <footer className="border-t border-[#352D27] py-3 px-6 text-center text-xs font-sans text-gray-500">
-        CODEVERSE 2.0 &bull; Phase 1: Royal Mint Heist + Challenge Arena &bull; FastAPI + React.js + SQLite
-      </footer>
 
     </div>
   );

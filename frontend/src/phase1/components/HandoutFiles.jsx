@@ -83,10 +83,10 @@ export default function HandoutFiles({ stageId, spec, disabled, onUse }) {
 
   return (
     <section aria-label="Handout files">
-      <h3 className="label">Handout files <span className="normal-case tracking-normal font-normal text-beige-faint">· everything you need, right here</span></h3>
+      <h3 className="label">Handout files</h3>
       {error && <p className="mt-2 text-sm text-red-text">{error}</p>}
       {!files && !error && <p className="mt-2 text-sm text-beige-dim">Loading files…</p>}
-      <ul className="mt-3 border border-rule divide-y divide-rule">
+      <ul className="mt-2 border border-rule divide-y divide-rule">
         {(files || []).map((file) => {
           const isOpen = open === file.path;
           const dest = target(file.path);
@@ -128,7 +128,7 @@ export default function HandoutFiles({ stageId, spec, disabled, onUse }) {
                     </button>
                     {dest && (
                       <button disabled={disabled} onClick={() => onUse(dest, cache[file.path] ?? "")} className={btn}>
-                        <FilePlus2 className="w-3.5 h-3.5" /> Use as {dest} in editor
+                        <FilePlus2 className="w-3.5 h-3.5" /> Use in editor
                       </button>
                     )}
                   </div>
