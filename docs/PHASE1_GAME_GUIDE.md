@@ -1,7 +1,7 @@
 # CODEVERSE 2.0 | Phase 1 — Royal Mint Heist + Challenge Arena
 
 **Ten stages in strict order.** Stages 01–05 are the Royal Mint Heist (vault breach, alarm debugging, hidden blueprint, mint map, printing-press ML); stages 06–10 are the Challenge Arena: five engineering challenges, one per muscle — optimization, debugging, reverse engineering, parsing/graphs and ML diagnosis.
-Each Challenge Arena problem gives you a **handout** (download it from the stage page), you work on your own machine, and you **submit** your
+Each Challenge Arena problem gives you a **handout** (the files are listed and readable right on the stage page — copy them, save them one by one, or load them straight into the editor), you work on your own machine, and you **submit** your
 result on the platform, where it is graded automatically.
 
 > This guide explains the mechanics. Answer keys and hidden tests stay on the server.

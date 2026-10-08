@@ -79,13 +79,19 @@ def test_skip_royal_mint_stages(team):
     assert dashboard(team)["current_stage"] == 6
 
 
-def test_stage1_brief_and_handout(team):
+def test_stage1_brief_and_handout_files(team):
     brief = team.get("/api/phase1/games/6/brief").json()
     assert brief["title"].startswith("URL Shortener") and brief["hints_total"] == 3 and brief["stage_id"] == 6
-    z = team.get("/api/phase1/games/6/handout")
-    assert z.status_code == 200 and z.headers["content-type"] == "application/zip"
-    names = zipfile.ZipFile(io.BytesIO(z.content)).namelist()
-    assert "p1_url_shortener/shortener.py" in names and not any("organizer" in n or "solution" in n for n in names)
+    assert team.get("/api/phase1/games/6/handout").status_code in (404, 405)       # the zip download is gone
+    listing = team.get("/api/phase1/games/6/files").json()
+    paths = [f["path"] for f in listing["files"]]
+    assert {"shortener.py", "test_correctness.py", "loadtest.py"} <= set(paths)
+    assert all(f["kind"] == "text" for f in listing["files"])
+    shown = team.get("/api/phase1/games/6/files/shortener.py").json()
+    assert "def shorten" in shown["content"]
+    # no path traversal, and nothing outside the handout (answers live in organizer/)
+    assert team.get("/api/phase1/games/6/files/..%2Forganizer%2Fsolution_shortener.py").status_code == 404
+    assert team.get("/api/phase1/games/6/files/%2E%2E/organizer/solution_shortener.py").status_code == 404
 
 
 def test_hint_returns_text_and_costs_points(team):
@@ -264,3 +270,22 @@ def test_admin_can_switch_games_off_and_totals_follow(client):
     client.put("/api/phase1/admin/stages/2", json={"enabled": True})
     assert client.put("/api/phase1/admin/stages/3", json={"enabled": "no"}).status_code == 422
     assert client.put("/api/phase1/admin/stages/11", json={"enabled": True}).status_code == 404
+
+
+def test_ctf_binaries_download_as_single_files_and_other_stage_files_read(client):
+    from app.phase1.core.config import settings as p1
+    client.cookies.clear()
+    assert client.post("/api/auth/login", json={"email": "d@example.com", "password": "password123"}).status_code == 200
+    p1.UNLOCK_ALL = True
+    try:
+        files = {f["path"]: f for f in client.get("/api/phase1/games/8/files").json()["files"]}
+        assert files["stage1"]["kind"] == "binary" and files["stage1_xor"]["kind"] == "binary"
+        assert client.get("/api/phase1/games/8/files/stage1").status_code == 415            # not readable as text
+        raw = client.get("/api/phase1/games/8/files/stage1?raw=1")
+        assert raw.status_code == 200 and raw.content[:4] == b"\x7fELF"
+        todo = {f["path"] for f in client.get("/api/phase1/games/7/files").json()["files"]}
+        assert {"app/crud.py", "app/main.py", "tests/test_todos.py"} <= todo
+        starters = client.get("/api/phase1/games/10/files").json()["starters"]
+        assert starters == {"starter.py": "solution.py"}
+    finally:
+        p1.UNLOCK_ALL = False

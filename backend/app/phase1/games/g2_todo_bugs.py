@@ -38,7 +38,7 @@ META = {
     "brief": (
         "You're given a complete, runnable FastAPI TODO-list app (SQLite via SQLAlchemy) and its test suite. It starts "
         "up and mostly works — but three bugs are planted, one per difficulty tier.\n\n"
-        "Unzip the handout, `pip install -r requirements.txt`, run `pytest` and watch some tests fail. Find and fix the "
+        "Copy the handout files into a folder on your machine (open each one below), `pip install -r requirements.txt`, run `pytest` and watch some tests fail. Find and fix the "
         "bugs so every test passes, with minimal, correct changes. Do NOT edit, delete or skip tests.\n\n"
         "For each fix write a one-line root-cause note — why it was wrong, not just what you changed.\n\n"
         "Submit the files you changed under app/ (add each file below with its path, e.g. app/crud.py) and one note "

@@ -1,7 +1,8 @@
 """Phase 1 challenge endpoints (all five stages share one shape).
 
     GET  /games/{n}/brief      stage description, submission form spec, unlocked hints, current best
-    GET  /games/{n}/handout    the team's zip download for the stage
+    GET  /games/{n}/files      the stage's handout files (listed + readable in the page — no zip)
+    GET  /games/{n}/files/{path}  one handout file (text as JSON, or raw with ?raw=1 for binaries)
     POST /games/{n}/submit     grade a submission (partial credit; best raw grade is kept)
     POST /games/{n}/finalize   lock in the current best score and move on to the next stage
 """
@@ -11,6 +12,7 @@ import time
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import FileResponse
 
 from app.phase1.core.config import settings
 from app.settings import settings as settings_app
@@ -19,7 +21,7 @@ from app.phase1.core.engine import ProgressionEngine
 from app.phase1.core.models import GenericSubmissionResponse, StageSubmission
 from app.phase1.core.scoring import net_stage_score
 from app.phase1.deps import phase1_team_id
-from app.phase1.games.common import handout_zip
+from app.phase1.games.common import handout_file, handout_files
 from app.phase1.games.registry import get_stage
 
 logger = logging.getLogger(__name__)
@@ -47,7 +49,6 @@ def _public_meta(stage) -> Dict[str, Any]:
         "hints_total": len(meta.get("hints", [])),
         "hint_penalties": get_scoring_config().get(f"game_{meta['id']}", {}).get("hint_penalties", [0.5, 1.0, 1.5]),
         "wrong_attempt_penalty": get_scoring_config().get(f"game_{meta['id']}", {}).get("wrong_attempt_penalty", 0.0),
-        "handout_filename": f"{meta['handout']}.zip",
     }
 
 
@@ -71,18 +72,32 @@ def get_brief(stage_id: int, team_id: str = Depends(phase1_team_id)):
     }
 
 
-@router.get("/{stage_id}/handout")
-def download_handout(stage_id: int, team_id: str = Depends(phase1_team_id)):
+@router.get("/{stage_id}/files")
+def list_handout_files(stage_id: int, team_id: str = Depends(phase1_team_id)):
     stage = get_stage(stage_id)
     ProgressionEngine.verify_stage_access(team_id, stage_id)
     try:
-        data = handout_zip(stage.META["handout"])
+        return {"files": handout_files(stage.META["handout"]), "starters": stage.META["submit"].get("starters", {})}
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="Handout is not available. Contact the organizers.")
-    return Response(content=data, media_type="application/zip", headers={
-        "Content-Disposition": f'attachment; filename="{stage.META["handout"]}.zip"',
-        "Cache-Control": "private, no-store",
-    })
+
+
+@router.get("/{stage_id}/files/{path:path}")
+def read_handout_file(stage_id: int, path: str, raw: bool = False, team_id: str = Depends(phase1_team_id)):
+    stage = get_stage(stage_id)
+    ProgressionEngine.verify_stage_access(team_id, stage_id)
+    try:
+        target = handout_file(stage.META["handout"], path)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No such handout file.")
+    if raw:
+        return FileResponse(target, media_type="application/octet-stream", filename=target.name,
+                            headers={"Cache-Control": "private, no-store"})
+    try:
+        content = target.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=415, detail="Binary file — download it instead.")
+    return {"path": path, "content": content}
 
 
 def _response(stage_id: int, *, success: bool, perfect: bool, awarded: float, total: float, message: str,

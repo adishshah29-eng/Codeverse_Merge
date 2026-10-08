@@ -81,7 +81,9 @@ export const game5Api = {
 // ── Challenge Arena stages 6-10 (same shape for all five) ──
 export const stageApi = {
   getBrief: (stageId) => apiRequest(`/games/${stageId}/brief`),
-  handoutUrl: (stageId) => `${API_BASE}/games/${stageId}/handout`,
+  listFiles: (stageId) => apiRequest(`/games/${stageId}/files`),
+  readFile: (stageId, path) => apiRequest(`/games/${stageId}/files/${path.split("/").map(encodeURIComponent).join("/")}`),
+  fileUrl: (stageId, path) => `${API_BASE}/games/${stageId}/files/${path.split("/").map(encodeURIComponent).join("/")}?raw=1`,
   submit: (stageId, payload) => apiRequest(`/games/${stageId}/submit`, "POST", payload),
   finalize: (stageId) => apiRequest(`/games/${stageId}/finalize`, "POST"),
 };

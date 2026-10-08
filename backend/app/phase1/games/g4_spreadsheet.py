@@ -32,6 +32,7 @@ META = {
     ),
     "submit": {
         "files": {"mode": "single", "names": ["engine.py"]},
+        "starters": {"engine.py": "engine.py"},
         "fields": [],
     },
     "hints": [

@@ -6,7 +6,7 @@ Each problem folder has the same layout:
 
 ```
 pNN_name/
-  handout/     what teams receive (the platform zips this folder for the stage page — never put answers here)
+  handout/     what teams receive (the stage page lists and shows these files in the browser — never put answers here)
   organizer/   answer key, reference solution, graders, hidden data (server-side only)
 ```
 
@@ -19,7 +19,7 @@ pNN_name/
 | 10 | `p5_regression` | ML / diagnosis | `housing.csv`, `housing_test.csv`, `starter.py` | `organizer/solution.py`, `gen_housing.py`, `ANSWER_KEY.md` | `g5_regression.py` |
 
 **Keep `organizer/` private.** If you share this repository with participants, move the `organizer/` folders out first
-— the grading server reads them from `competition/*/organizer/`, so keep them on the server only (e.g. hand teams just the `handout/` folders or the zips from the stage pages).
+— the grading server reads them from `competition/*/organizer/`, so keep them on the server only (teams see only the `handout/` files, which the stage pages show in-browser).
 
 ## What is verified
 

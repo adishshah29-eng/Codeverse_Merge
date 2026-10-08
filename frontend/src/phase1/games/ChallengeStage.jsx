@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, X, Download, Upload, Plus, Trash2, Loader2 } from "lucide-react";
-import { progressApi, stageApi } from "../api";
+import { Check, X, Upload, Plus, Trash2, Loader2 } from "lucide-react";
+import { progressApi } from "../api";
+import { stageApi } from "../api";
+import HandoutFiles from "../components/HandoutFiles";
 
 // One screen for all five Phase 1 challenges. The server describes the stage (brief, what to submit,
 // hints) and grades every submission; this component only collects files/answers and shows the result.
@@ -99,6 +101,19 @@ export default function ChallengeStage({ stageId, onStageComplete, onRefresh }) 
     }
   };
 
+  // "Use in editor" from the handout viewer: put a handout file into the submission editor.
+  const useInEditor = (path, content) => {
+    if (spec.mode === "single") {
+      setFiles([{ path: spec.names[0], content }]);
+    } else {
+      setFiles((prev) => {
+        const existing = prev.findIndex((f) => f.path === path);
+        return existing >= 0 ? prev.map((f, i) => (i === existing ? { ...f, content } : f)) : [...prev, { path, content }];
+      });
+    }
+    document.getElementById("submission-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const unlockHint = async (index) => {
     setError("");
     try {
@@ -178,14 +193,9 @@ export default function ChallengeStage({ stageId, onStageComplete, onRefresh }) 
           </p>
           <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-ink">{brief.title}</h2>
           <div className="mt-4 text-[14.5px] leading-relaxed text-ink/90 whitespace-pre-wrap">{brief.brief}</div>
-          <a
-            href={stageApi.handoutUrl(stageId)}
-            className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-sm bg-ink text-sm font-semibold text-beige hover:bg-red hover:text-white"
-          >
-            <Download className="w-4 h-4" /> Download handout
-            <span className="font-normal text-beige-dim">{brief.handout_filename}</span>
-          </a>
         </section>
+
+        <HandoutFiles stageId={stageId} spec={spec} disabled={closed} onUse={useInEditor} />
 
         <section className="pt-1">
           <h3 className="label">Hints <span className="normal-case tracking-normal font-normal text-beige-faint">· each one costs points</span></h3>
@@ -211,7 +221,7 @@ export default function ChallengeStage({ stageId, onStageComplete, onRefresh }) 
 
       {/* ── Doing column ── */}
       <div className="lg:col-span-7 space-y-6">
-        <section className="bg-coal border border-rule border-t-4 border-t-red p-5 space-y-5">
+        <section id="submission-editor" className="bg-coal border border-rule border-t-4 border-t-red p-5 space-y-5">
           <div className="flex items-baseline justify-between gap-4">
             <h3 className="font-display text-xl font-semibold text-white">Your submission</h3>
             <p className="text-sm text-beige-dim">

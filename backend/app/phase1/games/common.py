@@ -16,13 +16,9 @@ repository root (``handout/`` is given to teams, ``organizer/`` never leaves the
 """
 from __future__ import annotations
 
-import io
 import json
 import re
 import secrets
-import stat
-import zipfile
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -32,7 +28,6 @@ from app.settings import ROOT
 COMPETITION_DIR = ROOT / "competition"
 
 _SKIP_PARTS = {"__pycache__", ".pytest_cache", ".git", ".DS_Store"}
-_EXECUTABLE = {"stage1", "stage1_xor"}
 
 
 def problem_dir(name: str) -> Path:
@@ -75,24 +70,44 @@ def keyword_hits(text: str, groups: Iterable[str]) -> int:
 
 # ── handouts ───────────────────────────────────────────────────────────────────
 
-@lru_cache(maxsize=16)
-def handout_zip(name: str) -> bytes:
-    """The team-facing download for a problem: everything in ``competition/<name>/handout``."""
+_SKIP_PARTS = {"__pycache__", ".pytest_cache", ".git", ".DS_Store"}
+_TEXT_LIMIT = 300_000
+
+
+def _handout_root(name: str) -> Path:
     root = problem_dir(name) / "handout"
     if not root.is_dir():
         raise FileNotFoundError(f"Handout for {name} is missing.")
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted(root.rglob("*")):
-            relative = path.relative_to(root)
-            if path.is_dir() or any(part in _SKIP_PARTS for part in relative.parts):
-                continue
-            info = zipfile.ZipInfo(f"{name}/{relative.as_posix()}", date_time=(2026, 10, 8, 0, 0, 0))
-            mode = 0o755 if path.name in _EXECUTABLE else 0o644
-            info.external_attr = (stat.S_IFREG | mode) << 16
-            info.compress_type = zipfile.ZIP_DEFLATED
-            archive.writestr(info, path.read_bytes())
-    return buffer.getvalue()
+    return root.resolve()
+
+
+def handout_files(name: str) -> List[Dict[str, Any]]:
+    """Files of a stage's handout, for the in-page viewer (no zip). Text files can be shown; binaries are download-only."""
+    root = _handout_root(name)
+    files = []
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if not path.is_file() or any(part in _SKIP_PARTS for part in relative.parts) or path.suffix == ".pyc":
+            continue
+        size = path.stat().st_size
+        text = False
+        if size <= _TEXT_LIMIT:
+            try:
+                path.read_bytes().decode("utf-8")
+                text = True
+            except UnicodeDecodeError:
+                text = False
+        files.append({"path": relative.as_posix(), "size": size, "kind": "text" if text else "binary"})
+    return files
+
+
+def handout_file(name: str, relative: str) -> Path:
+    """Resolve one handout file safely (no path traversal, no caches)."""
+    root = _handout_root(name)
+    target = (root / relative).resolve()
+    if root not in target.parents or not target.is_file() or any(part in _SKIP_PARTS for part in target.relative_to(root).parts):
+        raise FileNotFoundError(relative)
+    return target
 
 
 # ── sandboxed runs ─────────────────────────────────────────────────────────────

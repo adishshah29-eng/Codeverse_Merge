@@ -39,6 +39,7 @@ META = {
     ),
     "submit": {
         "files": {"mode": "single", "names": ["shortener.py"]},
+        "starters": {"shortener.py": "shortener.py"},
         "fields": [
             {"key": "note", "label": "Bottlenecks you found and fixed (one line each)", "multiline": True, "required": False},
         ],

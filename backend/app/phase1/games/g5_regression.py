@@ -38,6 +38,7 @@ META = {
     ),
     "submit": {
         "files": {"mode": "single", "names": ["solution.py"]},
+        "starters": {"starter.py": "solution.py"},
         "fields": [],
     },
     "hints": [
