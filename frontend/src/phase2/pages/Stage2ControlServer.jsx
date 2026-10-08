@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StageBrief from "../components/StageBrief";
 import { API_BASE } from "../../shared/config";
 import { api } from "../api";
 
@@ -108,21 +109,7 @@ export default function Stage2ControlServer({ team, onStageCompleted }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span className="badge badge-crimson font-mono">SECTOR 02 // WEB & API FORENSICS</span>
-          <span className="badge badge-gold font-mono">MAX 10.0 PTS</span>
-        </div>
-        <h1 style={{ fontSize: "1.8rem", fontFamily: "var(--font-display)", color: "#fff", marginBottom: 6 }}>
-          FIND THE CONTROL SERVER
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: 900 }}>
-          Infiltrate the IronVault banking infrastructure. Three security layers protect the master command server.
-          Exploit the vulnerable Teller Login query, bypass the frozen DOM transfer overlay, and extract the hidden
-          audit header from internal telemetry. Breach all three sectors to capture the <strong>Control Token</strong>.
-        </p>
-      </div>
+      <StageBrief stage={2} />
 
       {/* Control Token Success Banner */}
       {controlToken && (

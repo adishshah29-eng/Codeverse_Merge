@@ -1,117 +1,77 @@
 import React, { useEffect, useState } from "react";
-import {
-  Activity,
-  CircleDollarSign,
-  Clock3,
-  LayoutDashboard,
-  LayoutGrid,
-  Lightbulb,
-  LogOut,
-  ShieldAlert,
-  Store,
-  Trophy,
-} from "lucide-react";
+import { STAGE_INFO } from "../stageInfo";
 
 function elapsedTime(startedAt, now) {
-  if (!startedAt) return "--:--:--";
-  const elapsed = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
-  const hours = String(Math.floor(elapsed / 3600)).padStart(2, "0");
-  const minutes = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
-  const seconds = String(elapsed % 60).padStart(2, "0");
-  return `${hours}:${minutes}:${seconds}`;
+  if (!startedAt) return "–";
+  const s = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
 }
 
-export default function Navbar({
-  team,
-  role,
-  stages = [],
-  activeView,
-  setActiveView,
-  onOpenMarket,
-  onOpenHints,
-  onLogout,
-}) {
+// Two quiet rows: who you are + your numbers + four text actions, then one line of stage tabs.
+export default function Navbar({ team, role, stages = [], activeView, setActiveView, onOpenMarket, onOpenHints, onLogout }) {
   const [now, setNow] = useState(Date.now());
   const currentStage = team?.current_stage || 1;
-  const score = team?.final_score ?? Object.values(team?.stage_scores || {}).reduce((sum, value) => sum + value, 0);
+  const score = team?.final_score ?? Object.values(team?.stage_scores || {}).reduce((sum, v) => sum + v, 0);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(interval);
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   return (
-    <header className="command-header">
-      <div className="command-header-main">
-        <button
-          className="command-brand"
-          onClick={() => setActiveView(role === "admin" ? "admin" : "dashboard")}
-          aria-label="Open command dashboard"
-        >
-          <span className="command-mark"><Activity size={21} strokeWidth={2.2} /></span>
-          <span className="command-brand-copy">
-            <strong>LA CASA DE PAPEL <i>/</i> COMMAND</strong>
-            <small><span className="signal-dot" /> OPERATION FUGA · SECURE CONTROL ROOM</small>
-          </span>
+    <header className="p2-bar">
+      <div className="p2-bar-row">
+        <button className="p2-brand" onClick={() => setActiveView(role === "admin" ? "admin" : "dashboard")}>
+          Operación Fuga
         </button>
+        {role === "team" && team && <span className="p2-who">{team.code} · {team.name}</span>}
+        {role === "admin" && <span className="p2-who">Organizer</span>}
 
         {role === "team" && team && (
-          <div className="command-team">
-            <span>CREW IDENT</span>
-            <strong>{team.code}</strong>
-            <small>{team.name}</small>
-          </div>
+          <dl className="p2-stats" aria-label="Your numbers">
+            <div title="Spend it in the Black Market"><dt>Funds</dt><dd>€{(team.money || 0).toLocaleString()}</dd></div>
+            <div title="Higher risk lowers your Final Extraction score"><dt>Risk</dt><dd>{(team.risk || 0).toFixed(1)}</dd></div>
+            <div><dt>Score</dt><dd>{Number(score || 0).toFixed(1)}</dd></div>
+            <div className="p2-hide-sm"><dt>Elapsed</dt><dd>{elapsedTime(team.event_started_at, now)}</dd></div>
+          </dl>
         )}
 
-        <div className="command-actions">
+        <nav className="p2-actions" aria-label="Actions">
           {role === "team" && <>
-            <button className="icon-command" onClick={onOpenMarket} title="Open black market" aria-label="Open black market"><Store size={17} /></button>
-            <button className="icon-command" onClick={onOpenHints} title="Open intelligence" aria-label="Open intelligence"><Lightbulb size={17} /></button>
+            <button onClick={onOpenHints}>Intel</button>
+            <button onClick={onOpenMarket}>Black Market</button>
           </>}
-          {role === "admin" && <span className="command-admin"><ShieldAlert size={15} /> ORGANIZER COMMAND</span>}
-          <a className="icon-command" href="/" title="Mission hub (all phases)" aria-label="Mission hub"><LayoutGrid size={17} /></a>
-          <button className="icon-command logout-command" onClick={onLogout} title="Sign out" aria-label="Sign out"><LogOut size={17} /></button>
-        </div>
+          <a href="/">Hub</a>
+          <button onClick={onLogout}>Sign out</button>
+        </nav>
       </div>
 
-      {role === "team" && team && <>
-        <div className="command-readouts" aria-label="Persistent mission telemetry">
-          <div className="readout"><CircleDollarSign size={16} /><span>FUNDS</span><strong>{(team.money || 0).toLocaleString()}</strong></div>
-          <div className="readout risk-readout"><ShieldAlert size={16} /><span>RISK</span><strong>{(team.risk || 0).toFixed(1)}</strong></div>
-          <div className="readout time-readout"><Clock3 size={16} /><span>ELAPSED</span><strong>{elapsedTime(team.event_started_at, now)}</strong></div>
-          <div className="readout score-readout"><Trophy size={16} /><span>SCORE</span><strong>{Number(score || 0).toFixed(1)}</strong></div>
-        </div>
-
-        <nav className="mission-timeline" aria-label="Heist stage progression">
-          <button
-            className={`timeline-home ${activeView === "dashboard" ? "selected" : ""}`}
-            onClick={() => setActiveView("dashboard")}
-          >
-            <LayoutDashboard size={15} /> OVERVIEW
-          </button>
-          <div className="timeline-track">
-            {stages.map((stage) => {
-              const isCurrent = stage.id === currentStage && !["completed", "skipped"].includes(stage.status);
-              const isAvailable = stage.id === currentStage && isCurrent;
-              const state = stage.status === "completed" ? "complete" : stage.status === "skipped" ? "skipped" : isCurrent ? "active" : "locked";
-              return (
-                <button
-                  key={stage.id}
-                  className={`timeline-stage ${state} ${activeView === `stage${stage.id}` ? "selected" : ""}`}
-                  onClick={() => isAvailable && setActiveView(`stage${stage.id}`)}
-                  disabled={!isAvailable}
-                  aria-current={isCurrent ? "step" : undefined}
-                  title={isAvailable ? "Enter active stage" : `${state.toUpperCase()}: ${stage.title}`}
-                >
-                  <span className="timeline-node">{String(stage.id).padStart(2, "0")}</span>
-                  <span className="timeline-label">{stage.title.split("—")[1]?.trim() || stage.title}</span>
-                  <small>{state === "active" ? "LIVE" : state.toUpperCase()}</small>
-                </button>
-              );
-            })}
-          </div>
+      {role === "team" && team && (
+        <nav className="p2-tabs" aria-label="Stages">
+          <button className={activeView === "dashboard" ? "on" : ""} onClick={() => setActiveView("dashboard")}>Overview</button>
+          {stages.map((stage) => {
+            const done = stage.status === "completed";
+            const skipped = stage.status === "skipped";
+            const live = stage.id === currentStage && !done && !skipped;
+            const open = live || Boolean(stage.debug_unlock);
+            const mark = done ? "done" : skipped ? "skipped" : live ? "now" : open ? "open" : "locked";
+            return (
+              <button
+                key={stage.id}
+                className={`${activeView === `stage${stage.id}` ? "on" : ""} ${mark}`}
+                onClick={() => open && setActiveView(`stage${stage.id}`)}
+                disabled={!open}
+                aria-current={live ? "step" : undefined}
+                title={open ? "Open this stage" : mark === "locked" ? "Locked until the previous stage is finished" : mark}
+              >
+                <b>{stage.id}</b> {STAGE_INFO[stage.id]?.short || stage.title}
+                {mark !== "open" && mark !== "now" && <small>{mark}</small>}
+              </button>
+            );
+          })}
         </nav>
-      </>}
+      )}
     </header>
   );
 }

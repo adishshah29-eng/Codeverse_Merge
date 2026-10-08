@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StageBrief from "../components/StageBrief";
 import App from "../extraction/App.jsx";
 import { Vault } from "../extraction/src.jsx";
 import { api } from "../api";
@@ -31,20 +32,7 @@ export default function Stage4Extraction({ team, onStageCompleted }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "20px 20px" }}>
-      {/* Header telemetry info */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span className="badge badge-crimson font-mono">STAGE 04 // FINAL EXTRACTION</span>
-          <span className="badge badge-gold font-mono">MAX 10.0 PTS + OVERALL HEIST SCORE</span>
-        </div>
-        <h1 style={{ fontSize: "1.8rem", fontFamily: "var(--font-display)", color: "#fff", marginBottom: 6 }}>
-          FINAL EXTRACTION PROTOCOL
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: 900 }}>
-          Bring together the four cryptographic credentials from the earlier phases. Authorize all four locks,
-          execute the 5-step override sequence before the five-minute countdown expires, and pilot the getaway crew home.
-        </p>
-      </div>
+      <StageBrief stage={4} />
 
       {/* Stage outputs inventory strip */}
       <div style={{

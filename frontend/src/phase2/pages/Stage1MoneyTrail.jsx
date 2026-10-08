@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StageBrief from "../components/StageBrief";
 import { api } from "../api";
 
 export default function Stage1MoneyTrail({ team, onStageCompleted }) {
@@ -75,21 +76,7 @@ export default function Stage1MoneyTrail({ team, onStageCompleted }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px" }}>
-      {/* Sector Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span className="badge badge-crimson font-mono">SECTOR 01 // DATA FORENSICS</span>
-          <span className="badge badge-gold font-mono">MAX 10.0 PTS</span>
-        </div>
-        <h1 style={{ fontSize: "1.8rem", fontFamily: "var(--font-display)", color: "#fff", marginBottom: 6 }}>
-          ERASE THE MONEY TRAIL
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: 900 }}>
-          An unauthorized insider has purged the royal treasury through a series of fraudulent wire transfers.
-          Query the live forensics database to cross-reference transactions, security badge logs, terminal shell histories,
-          and security alerts. Eliminate decoys and forge the authoritative <strong>Deletion Key</strong>.
-        </p>
-      </div>
+      <StageBrief stage={1} />
 
       {/* Main Forensic Workstation Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, marginBottom: 28 }}>

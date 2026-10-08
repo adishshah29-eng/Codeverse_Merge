@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StageBrief from "../components/StageBrief";
 import { api } from "../api";
 
 export default function Stage3OutrunPolice({ team, onStageCompleted }) {
@@ -65,21 +66,7 @@ export default function Stage3OutrunPolice({ team, onStageCompleted }) {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span className="badge badge-crimson font-mono">SECTOR 03 // GRAPH OPTIMIZATION</span>
-          <span className="badge badge-gold font-mono">MAX 10.0 PTS</span>
-        </div>
-        <h1 style={{ fontSize: "1.8rem", fontFamily: "var(--font-display)", color: "#fff", marginBottom: 6 }}>
-          OUTRUN THE POLICE
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: 900 }}>
-          The police lockdown is actively expanding. Compute a path across 60 city checkpoints from the Hideout (<code>N00</code>)
-          to the Extraction Point (<code>N59</code>). Some roads close as the event clock advances, and compromised nodes
-          invalidate paths. Minimize overall risk while strictly respecting the 120-minute deadline and 100-credit budget.
-        </p>
-      </div>
+      <StageBrief stage={3} />
 
       {/* Telemetry Bar */}
       <div style={{

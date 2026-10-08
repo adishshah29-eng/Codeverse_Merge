@@ -109,8 +109,7 @@ export default function App() {
         fontFamily: "var(--font-mono)"
       }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🎭</div>
-          <div>ESTABLISHING ENCRYPTED SECURE CHANNEL...</div>
+          <div>Loading…</div>
         </div>
       </div>
     );
