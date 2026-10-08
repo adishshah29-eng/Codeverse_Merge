@@ -89,7 +89,7 @@ class ProgressionEngine:
         progress = select_one("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id})
         if not progress:
             raise HTTPException(status_code=404, detail="Stage progress not found.")
-        if settings_app.debug_unlock_all and progress["status"] == "LOCKED":
+        if (settings.UNLOCK_ALL or settings_app.debug_unlock_all) and progress["status"] == "LOCKED":
             # debug mode: opening a stage out of order activates it
             now = datetime.now(timezone.utc).isoformat()
             update_rows("p1_stage_progress", {"team_id": team_id, "stage_id": stage_id}, {"status": "ACTIVE", "started_at": now})
@@ -288,6 +288,7 @@ class ProgressionEngine:
             team_id=team["id"], team_name=team["name"], current_stage=team["current_stage"],
             total_score=float(team["total_score"]), total_penalty=float(team["total_penalty"]),
             stages=stages, rank=rank, total_teams=len(teams), debug_unlock_all=settings_app.debug_unlock_all,
+            unlock_all=settings.UNLOCK_ALL or settings_app.debug_unlock_all,
         )
 
     @staticmethod

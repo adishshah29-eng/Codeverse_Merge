@@ -9,6 +9,8 @@ class Settings(BaseSettings):
 
     # Stage IDs & Names (competition/ has the handout, tests and answer key for each)
     TOTAL_STAGES: int = 10
+    # Open every Phase 1 game to every team from the start (any order). Set PHASE1_UNLOCK_ALL=false for strict 1 → 10 order.
+    UNLOCK_ALL: bool = True
     LEGACY_STAGES: int = 5   # stages 1-5 = Royal Mint Heist (original engines); 6-10 = Challenge Arena
     STAGE_NAMES: Dict[int, str] = {
         1: "Vault Breach (Logic/Cryptography)",

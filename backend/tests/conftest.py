@@ -11,6 +11,7 @@ os.environ.update({
     "ADMIN_USERNAME": "organizer",
     "ADMIN_PASSWORD": "organizer-password-123",
     "ENVIRONMENT": "development",
+    "PHASE1_UNLOCK_ALL": "false",   # the flow tests exercise strict stage order; unlock-all is tested separately
     "STAGE1_DELETION_KEY": "k1", "CTF_PUZZLE3_CODE": "c3", "CTF_CONTROL_TOKEN": "t1",
     "STAGE4_SHUTDOWN_CODE": "s4", "STAGE4_SEQUENCE": "1234",
 })

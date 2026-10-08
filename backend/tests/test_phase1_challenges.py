@@ -180,3 +180,18 @@ def test_debug_unlock_all_opens_every_stage_in_both_phases(client):
     finally:
         settings.debug_unlock_all = False
     assert client.get("/api/phase1/games/9/brief").status_code == 403           # back to normal when switched off
+
+
+def test_phase1_unlock_all_setting(client):
+    from app.phase1.core.config import settings as p1
+
+    client.cookies.clear()
+    assert client.post("/api/auth/login", json={"email": "d@example.com", "password": "password123"}).status_code == 200
+    assert client.get("/api/phase1/games/10/brief").status_code == 403
+    p1.UNLOCK_ALL = True
+    try:
+        assert client.get("/api/phase1/progress/dashboard").json()["unlock_all"] is True
+        assert client.get("/api/phase1/games/10/brief").status_code == 200
+        assert client.get("/api/phase1/games/3/ping").status_code == 200
+    finally:
+        p1.UNLOCK_ALL = False
